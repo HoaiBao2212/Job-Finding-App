@@ -39,8 +39,7 @@ export default function LoginScreen() {
         return;
       }
 
-      // Đăng nhập thành công -> điều hướng sang trang Candidate/LoginScreen
-      router.replace("/(candidate)/HomeScreen");
+      router.replace("/Candidate/JobFinding");
     } catch (err: any) {
       Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {
@@ -87,9 +86,6 @@ export default function LoginScreen() {
           <View style={styles.field}>
             <View style={styles.labelRow}>
               <Text style={styles.label}>Mật khẩu</Text>
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
@@ -114,6 +110,11 @@ export default function LoginScreen() {
               <Text style={styles.primaryButtonText}>Đăng nhập</Text>
             )}
           </TouchableOpacity>
+          <View style={styles.labelForgot}>
+            <TouchableOpacity>
+              <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Hoặc */}
           <View style={styles.dividerRow}>
@@ -214,6 +215,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 6,
+  },
+  labelForgot: {
+    alignItems: "center",
+    width: "100%",
+    marginTop: 10,
   },
   forgotText: {
     fontSize: 13,

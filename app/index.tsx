@@ -146,6 +146,37 @@ export default function Index() {
               Hồ sơ cá nhân
             </Text>
           </TouchableOpacity>
+          {/* Login */}
+          <TouchableOpacity
+            onPress={() => handleNavigate("/(auth)/login")}
+            style={{
+              paddingVertical: 16,
+              paddingHorizontal: 20,
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              borderWidth: 2,
+              borderColor: colors.primary,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="account"
+              size={20}
+              color={colors.primary}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 16,
+                fontWeight: "600",
+              }}
+            >
+              Login
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Footer Info */}
