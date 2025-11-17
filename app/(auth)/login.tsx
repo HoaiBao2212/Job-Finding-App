@@ -29,6 +29,7 @@ export default function LoginScreen() {
     try {
       setLoading(true);
 
+      // 1. Đăng nhập
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -39,7 +40,54 @@ export default function LoginScreen() {
         return;
       }
 
-      router.replace("/Candidate/JobFinding");
+      // 2. Lấy user hiện tại
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        Alert.alert("Lỗi", "Không lấy được thông tin tài khoản.");
+        return;
+      }
+
+      const userId = user.id;
+
+      // 3. Kiểm tra hồ sơ trong bảng profiles
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name, phone, location, role")
+        .eq("id", userId)
+        .single();
+
+      // Nếu chưa có profile → bắt user hoàn thiện thông tin
+      if (profileError || !profile) {
+        router.replace("/complete-profile");
+        return;
+      }
+
+      // 4. Kiểm tra thông tin bắt buộc
+      const requiredFields = ["full_name", "phone", "location", "role"];
+      const missing = requiredFields.some((field) => !(profile as any)[field]);
+
+      if (missing) {
+        router.replace("/complete-profile");
+        return;
+      }
+
+      // 5. Chuyển hướng theo role
+      if (profile.role === "candidate") {
+        router.replace("/Candidate/JobFinding");
+      } else if (profile.role === "employer") {
+        router.replace("/Applicant/Dashboard");
+      } else {
+        // Trường hợp role bị null hoặc giá trị lạ
+        Alert.alert(
+          "Thiếu vai trò",
+          "Bạn chưa chọn vai trò. Vui lòng hoàn thiện hồ sơ."
+        );
+        router.replace("/complete-profile");
+      }
     } catch (err: any) {
       Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {
@@ -111,22 +159,12 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
           <View style={styles.labelForgot}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/forgot-password")}
+            >
               <Text style={styles.forgotText}>Quên mật khẩu?</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Hoặc */}
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>Hoặc</Text>
-            <View style={styles.divider} />
-          </View>
-
-          {/* Nút tiếp tục với Google (chưa cài) */}
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.8}>
-            <Text style={styles.secondaryButtonText}>Tiếp tục với Google</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Chưa có tài khoản */}

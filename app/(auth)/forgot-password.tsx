@@ -14,56 +14,34 @@ import {
   View,
 } from "react-native";
 
-export default function RegisterScreen() {
+export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập đầy đủ các trường");
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Mật khẩu yếu", "Mật khẩu phải có ít nhất 6 ký tự");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Không khớp", "Mật khẩu và xác nhận mật khẩu không trùng");
+  const handleSendResetEmail = async () => {
+    if (!email) {
+      Alert.alert("Thiếu thông tin", "Vui lòng nhập email");
       return;
     }
 
     try {
       setLoading(true);
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        // optional: nếu bạn muốn lưu thêm metadata:
-        // options: {
-        //   data: {
-        //     full_name: fullName,
-        //   },
-        // },
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "http://localhost:8081/reset-password",
       });
 
       if (error) {
-        Alert.alert("Đăng ký thất bại", error.message);
+        Alert.alert("Gửi thất bại", error.message);
         return;
       }
 
-      // Tuỳ config Supabase:
-      // - Nếu bật email confirmation: user phải vào mail để xác nhận
-      // - Nếu tắt: có thể login luôn
       Alert.alert(
-        "Thành công",
-        "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản."
+        "Đã gửi",
+        "Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn."
       );
 
-      // Điều hướng về màn đăng nhập
+      // quay lại màn đăng nhập
       router.replace("/(auth)/login");
     } catch (err: any) {
       Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
@@ -80,25 +58,24 @@ export default function RegisterScreen() {
       >
         {/* Logo + tên app */}
         <View style={styles.logoWrapper}>
-          <View className="logoCircle" style={styles.logoCircle}>
+          <View style={styles.logoCircle}>
             <Text style={styles.logoText}>JF</Text>
           </View>
           <Text style={styles.appName}>JobFinder</Text>
           <Text style={styles.appSubtitle}>
-            Tạo tài khoản để bắt đầu tìm việc
+            Nhập email để đặt lại mật khẩu của bạn
           </Text>
         </View>
 
-        {/* Card đăng ký */}
+        {/* Card quên mật khẩu */}
         <View style={styles.card}>
-          <Text style={styles.title}>Đăng ký</Text>
+          <Text style={styles.title}>Quên mật khẩu</Text>
 
-          {/* Email */}
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
-              placeholder="nhapemail@gmail.com"
+              placeholder="email@gmail.com"
               placeholderTextColor={theme.colors.textGray}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -107,52 +84,26 @@ export default function RegisterScreen() {
             />
           </View>
 
-          {/* Mật khẩu */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Mật khẩu</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor={theme.colors.textGray}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
-
-          {/* Xác nhận mật khẩu */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Xác nhận mật khẩu</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor={theme.colors.textGray}
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-          </View>
-
-          {/* Nút đăng ký */}
           <TouchableOpacity
             style={[styles.primaryButton, loading && { opacity: 0.7 }]}
             activeOpacity={0.8}
-            onPress={handleRegister}
+            onPress={handleSendResetEmail}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={theme.button.primary.text} />
             ) : (
-              <Text style={styles.primaryButtonText}>Đăng ký</Text>
+              <Text style={styles.primaryButtonText}>
+                Gửi email đặt lại mật khẩu
+              </Text>
             )}
           </TouchableOpacity>
-        </View>
 
-        {/* Đã có tài khoản */}
-        <View style={styles.bottomRow}>
-          <Text style={styles.bottomText}>Đã có tài khoản?</Text>
-          <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-            <Text style={styles.bottomLink}>Đăng nhập</Text>
+          <TouchableOpacity
+            style={styles.backToLogin}
+            onPress={() => router.replace("/(auth)/login")}
+          >
+            <Text style={styles.backToLoginText}>← Quay lại đăng nhập</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -249,55 +200,18 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: theme.button.primary.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     fontFamily: Fonts.sans,
+    textAlign: "center",
   },
-  dividerRow: {
-    flexDirection: "row",
+  backToLogin: {
+    marginTop: 16,
     alignItems: "center",
-    marginVertical: 16,
   },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
-  },
-  dividerText: {
-    marginHorizontal: 8,
-    fontSize: 12,
-    color: theme.colors.textGray,
-    fontFamily: Fonts.sans,
-  },
-  secondaryButton: {
-    borderRadius: 14,
-    paddingVertical: 11,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.button.secondary.border,
-    backgroundColor: theme.button.secondary.bg,
-  },
-  secondaryButtonText: {
-    color: theme.button.secondary.text,
-    fontSize: 15,
-    fontWeight: "500",
-    fontFamily: Fonts.sans,
-  },
-  bottomRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 20,
-    gap: 6,
-  },
-  bottomText: {
-    fontSize: 14,
-    color: theme.colors.textGray,
-    fontFamily: Fonts.sans,
-  },
-  bottomLink: {
+  backToLoginText: {
     fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: "600",
     fontFamily: Fonts.sans,
   },
 });

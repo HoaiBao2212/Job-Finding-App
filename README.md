@@ -8,6 +8,10 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
    ```bash
    npm install
+   npm install @react-native-picker/picker
+   npm install @supabase/supabase-js@2
+   npx expo install @react-native-async-storage/async-storage react-native-url-polyfill
+
    ```
 
 2. Start the app

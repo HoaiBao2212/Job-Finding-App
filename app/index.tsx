@@ -177,6 +177,37 @@ export default function Index() {
               Login
             </Text>
           </TouchableOpacity>
+          {/* role select */}
+          <TouchableOpacity
+            onPress={() => handleNavigate("/role-select")}
+            style={{
+              paddingVertical: 16,
+              paddingHorizontal: 20,
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              borderWidth: 2,
+              borderColor: colors.primary,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="account"
+              size={20}
+              color={colors.primary}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 16,
+                fontWeight: "600",
+              }}
+            >
+              role select
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Footer Info */}
