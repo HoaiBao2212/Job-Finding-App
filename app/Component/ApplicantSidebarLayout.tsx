@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Animated, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/theme';
 
-interface SidebarLayoutProps {
+interface ApplicantSidebarLayoutProps {
   children: React.ReactNode;
 }
 
@@ -15,14 +15,12 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { icon: 'home', label: 'Việc làm', route: '/Candidate/JobFinding' },
-  { icon: 'file-document', label: 'Đơn ứng tuyển', route: '/Candidate/Apply' },
-  { icon: 'calendar', label: 'Lịch phỏng vấn', route: '/Candidate/Schedule' },
-  { icon: 'account', label: 'Hồ sơ', route: '/Candidate/CandidateProfileScreen' },
-  { icon: 'cog', label: 'Tài khoản', route: '/Candidate/Account' },
+  { icon: 'view-dashboard', label: 'Dashboard', route: '/Applicant/Dashboard' },
+  { icon: 'briefcase-multiple', label: 'Tin tuyển dụng', route: '/Applicant/JobApplication' },
+  { icon: 'account-multiple', label: 'Người ứng tuyển', route: '/Applicant/CandidateApply' },
 ];
 
-export default function SidebarLayout({ children }: SidebarLayoutProps) {
+export default function ApplicantSidebarLayout({ children }: ApplicantSidebarLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -119,13 +117,14 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                 color: colors.textDark,
               }}
             >
-              Việc Làm
+              Nhà Tuyển Dụng
             </Text>
           </View>
 
           {/* Menu Items */}
           {MENU_ITEMS.map((item) => {
-            const isActive = pathname === item.route;
+            const routeName = item.route.split('/').pop() || '';
+            const isActive = pathname.includes(routeName);
             return (
               <TouchableOpacity
                 key={item.route}
@@ -260,4 +259,3 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     </SafeAreaView>
   );
 }
-
