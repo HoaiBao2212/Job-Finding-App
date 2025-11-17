@@ -10,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { colors } from '../../constants/theme';
+import SidebarLayout from '../Component/SidebarLayout';
 
 interface JobDetail {
   id: string;
@@ -125,8 +126,9 @@ export default function JobDetail() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-      {/* Header */}
+    <SidebarLayout>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+        {/* Header */}
       <View
         style={{
           flexDirection: 'row',
@@ -446,5 +448,6 @@ export default function JobDetail() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+    </SidebarLayout>
   );
 }

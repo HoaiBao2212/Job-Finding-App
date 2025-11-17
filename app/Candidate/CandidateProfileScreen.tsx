@@ -1,11 +1,14 @@
+import { useRouter } from "expo-router";
 import {
   Image,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import SidebarLayout from "../Component/SidebarLayout";
 
 const PRIMARY = "#1C7ED6";
 const PRIMARY_DARK = "#1864AB";
@@ -16,20 +19,23 @@ const TEXT_DARK = "#333333";
 const TEXT_BLUE = "#0B5394";
 
 export default function CandidateProfileScreen() {
+  const router = useRouter();
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
+    <SidebarLayout>
+      <SafeAreaView style={styles.container}>
+        <ScrollView>
+          {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>Nguyễn Văn A</Text>
-            <Text style={styles.title}>React Native Developer</Text>
-            <Text style={styles.location}>📍 Hồ Chí Minh, Việt Nam</Text>
-          </View>
           <Image
             source={{ uri: "https://i.pravatar.cc/150?img=32" }}
             style={styles.avatar}
           />
+          <View style={{ alignItems: "center", marginTop: 12 }}>
+            <Text style={styles.name}>Nguyễn Văn A</Text>
+            <Text style={styles.title}>React Native Developer</Text>
+            <Text style={styles.location}>📍 Hồ Chí Minh, Việt Nam</Text>
+          </View>
         </View>
 
         <View style={styles.headerBottom}>
@@ -141,12 +147,17 @@ export default function CandidateProfileScreen() {
       </View>
 
       {/* Nút chỉnh sửa hồ sơ */}
-      <TouchableOpacity style={styles.editButton}>
+      <TouchableOpacity 
+        style={styles.editButton}
+        onPress={() => router.push('/Candidate/EditProfile')}
+      >
         <Text style={styles.editButtonText}>Chỉnh sửa hồ sơ</Text>
       </TouchableOpacity>
 
       <View style={{ height: 32 }} />
-    </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </SidebarLayout>
   );
 }
 
@@ -164,29 +175,32 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
   },
   headerTop: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
   },
   name: {
     fontSize: 22,
     fontWeight: "700",
     color: "white",
+    textAlign: "center",
   },
   title: {
     fontSize: 14,
     color: "#E3F2FD",
     marginTop: 4,
+    textAlign: "center",
   },
   location: {
     fontSize: 13,
     color: "#E3F2FD",
     marginTop: 6,
+    textAlign: "center",
   },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    marginLeft: 16,
     borderWidth: 2,
     borderColor: PRIMARY_LIGHT,
   },

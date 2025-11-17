@@ -49,9 +49,9 @@ export default function Index() {
 
         {/* Navigation Buttons */}
         <View style={{ width: "100%", gap: 12 }}>
-          {/* Candidate Home */}
+          {/* Applicant Dashboard */}
           <TouchableOpacity
-            onPress={() => handleNavigate("/Candidate/Home")}
+            onPress={() => handleNavigate("/Applicant/Dashboard")}
             style={{
               paddingVertical: 16,
               paddingHorizontal: 20,
@@ -67,7 +67,7 @@ export default function Index() {
             }}
           >
             <MaterialCommunityIcons
-              name="home"
+              name="briefcase-account"
               size={20}
               color={colors.white}
               style={{ marginRight: 8 }}
@@ -75,6 +75,38 @@ export default function Index() {
             <Text
               style={{
                 color: colors.white,
+                fontSize: 16,
+                fontWeight: "600",
+              }}
+            >
+              Nhà tuyển dụng - Dashboard
+            </Text>
+          </TouchableOpacity>
+
+          {/* Candidate JobFinding */}
+          <TouchableOpacity
+            onPress={() => handleNavigate("/Candidate/JobFinding")}
+            style={{
+              paddingVertical: 16,
+              paddingHorizontal: 20,
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              borderWidth: 2,
+              borderColor: colors.primary,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="home"
+              size={20}
+              color={colors.primary}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              style={{
+                color: colors.primary,
                 fontSize: 16,
                 fontWeight: "600",
               }}
