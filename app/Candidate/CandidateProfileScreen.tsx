@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import {
   Image,
   SafeAreaView,
@@ -18,6 +19,7 @@ const TEXT_DARK = "#333333";
 const TEXT_BLUE = "#0B5394";
 
 export default function CandidateProfileScreen() {
+  const router = useRouter();
   return (
     <SidebarLayout>
       <SafeAreaView style={styles.container}>
@@ -145,7 +147,10 @@ export default function CandidateProfileScreen() {
       </View>
 
       {/* Nút chỉnh sửa hồ sơ */}
-      <TouchableOpacity style={styles.editButton}>
+      <TouchableOpacity 
+        style={styles.editButton}
+        onPress={() => router.push('/Candidate/EditProfile')}
+      >
         <Text style={styles.editButtonText}>Chỉnh sửa hồ sơ</Text>
       </TouchableOpacity>
 

@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
     Alert,
@@ -24,6 +25,7 @@ interface UserAccount {
 }
 
 export default function AccountScreen() {
+  const router = useRouter();
   const [user, setUser] = React.useState<UserAccount>({
     name: 'Nguyễn Văn A',
     email: 'nguyenvana@example.com',
@@ -320,6 +322,36 @@ export default function AccountScreen() {
           {/* Account Information */}
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Thông tin tài khoản" />
+
+            {/* Edit Profile Button */}
+            <TouchableOpacity
+              onPress={() => router.push('/Candidate/EditProfile')}
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: 'center',
+                marginBottom: 16,
+                flexDirection: 'row',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialCommunityIcons
+                name="pencil"
+                size={18}
+                color={colors.white}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={{
+                  color: colors.white,
+                  fontSize: 14,
+                  fontWeight: '600',
+                }}
+              >
+                Chỉnh sửa hồ sơ
+              </Text>
+            </TouchableOpacity>
 
             <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
               <View
