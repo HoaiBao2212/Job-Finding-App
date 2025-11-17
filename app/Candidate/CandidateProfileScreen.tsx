@@ -1,3 +1,4 @@
+import { theme } from "@/constants/theme";
 import {
   Image,
   ScrollView,
@@ -7,13 +8,7 @@ import {
   View,
 } from "react-native";
 
-const PRIMARY = "#1C7ED6";
-const PRIMARY_DARK = "#1864AB";
-const PRIMARY_LIGHT = "#A5D8FF";
-const BG_SOFT = "#E7F5FF";
-const BG_NEUTRAL = "#F8F9FA";
-const TEXT_DARK = "#333333";
-const TEXT_BLUE = "#0B5394";
+const { colors } = theme;
 
 export default function CandidateProfileScreen() {
   return (
@@ -153,10 +148,10 @@ export default function CandidateProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_NEUTRAL,
+    backgroundColor: theme.background.main,
   },
   header: {
-    backgroundColor: PRIMARY,
+    backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingTop: 40,
     paddingBottom: 20,
@@ -170,7 +165,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 22,
     fontWeight: "700",
-    color: "white",
+    color: colors.white,
   },
   title: {
     fontSize: 14,
@@ -188,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     marginLeft: 16,
     borderWidth: 2,
-    borderColor: PRIMARY_LIGHT,
+    borderColor: colors.primaryLight,
   },
   headerBottom: {
     flexDirection: "row",
@@ -204,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerStatValue: {
-    color: "white",
+    color: colors.white,
     fontWeight: "700",
     fontSize: 16,
   },
@@ -217,12 +212,12 @@ const styles = StyleSheet.create({
   card: {
     marginTop: 16,
     marginHorizontal: 16,
-    backgroundColor: "white",
+    backgroundColor: theme.background.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: PRIMARY_LIGHT,
-    shadowColor: "#000",
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadowLight,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -231,7 +226,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: TEXT_BLUE,
+    color: theme.text.heading,
     marginBottom: 8,
   },
   itemRow: {
@@ -241,20 +236,20 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 13,
-    color: "#666",
+    color: theme.text.subtle,
   },
   itemValue: {
     fontSize: 13,
-    color: TEXT_DARK,
+    color: theme.text.body,
     maxWidth: "60%",
     textAlign: "right",
   },
   link: {
-    color: PRIMARY_DARK,
+    color: colors.primaryDark,
   },
   paragraph: {
     fontSize: 13,
-    color: TEXT_DARK,
+    color: theme.text.body,
     lineHeight: 18,
     marginTop: 4,
   },
@@ -264,7 +259,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chip: {
-    backgroundColor: BG_SOFT,
+    backgroundColor: theme.background.soft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -273,7 +268,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 12,
-    color: PRIMARY_DARK,
+    color: colors.primaryDark,
   },
   expItem: {
     marginTop: 10,
@@ -286,16 +281,16 @@ const styles = StyleSheet.create({
   expRole: {
     fontSize: 14,
     fontWeight: "600",
-    color: TEXT_DARK,
+    color: theme.text.body,
     maxWidth: "60%",
   },
   expTime: {
     fontSize: 12,
-    color: "#777",
+    color: theme.text.subtle,
   },
   expCompany: {
     fontSize: 13,
-    color: TEXT_BLUE,
+    color: theme.text.heading,
     marginTop: 2,
   },
   expDesc: {
@@ -307,7 +302,7 @@ const styles = StyleSheet.create({
   eduSchool: {
     fontSize: 14,
     fontWeight: "600",
-    color: TEXT_DARK,
+    color: theme.text.body,
     marginTop: 4,
   },
   eduMajor: {
@@ -317,20 +312,20 @@ const styles = StyleSheet.create({
   },
   eduTime: {
     fontSize: 12,
-    color: "#777",
+    color: theme.text.subtle,
     marginTop: 2,
   },
   editButton: {
     marginTop: 20,
     marginHorizontal: 16,
-    backgroundColor: PRIMARY_DARK,
+    backgroundColor: theme.button.primary.bg,
     borderRadius: 999,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   editButtonText: {
-    color: "white",
+    color: theme.button.primary.text,
     fontSize: 15,
     fontWeight: "600",
   },
