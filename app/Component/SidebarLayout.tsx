@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Animated, SafeAreaView, TouchableOpacity, View } from 'react-native';
+import { Animated, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/theme';
 
 interface SidebarLayoutProps {
@@ -15,8 +15,11 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { icon: 'home', label: 'Trang chủ', route: '/Candidate/Home' },
+  { icon: 'home', label: 'Việc làm', route: '/Candidate/JobFinding' },
+  { icon: 'file-document', label: 'Đơn ứng tuyển', route: '/Candidate/Apply' },
+  { icon: 'calendar', label: 'Lịch phỏng vấn', route: '/Candidate/Schedule' },
   { icon: 'account', label: 'Hồ sơ', route: '/Candidate/CandidateProfileScreen' },
+  { icon: 'cog', label: 'Tài khoản', route: '/Candidate/Account' },
 ];
 
 export default function SidebarLayout({ children }: SidebarLayoutProps) {
@@ -47,6 +50,15 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
 
   const handleMenuPress = (route: string) => {
     router.push(route as any);
+    closeSidebar();
+  };
+
+  const closeSidebar = () => {
+    Animated.timing(sidebarAnimation, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
     setIsOpen(false);
   };
 
@@ -189,19 +201,26 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
 
         {/* Overlay */}
         {isOpen && (
-          <Animated.View
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={closeSidebar}
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: '#000',
-              opacity: overlayOpacity,
               zIndex: 999,
             }}
-            onTouchEnd={() => setIsOpen(false)}
-          />
+          >
+            <Animated.View
+              style={{
+                flex: 1,
+                backgroundColor: '#000',
+                opacity: overlayOpacity,
+              }}
+            />
+          </TouchableOpacity>
         )}
 
         {/* Main Content */}
@@ -241,6 +260,4 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     </SafeAreaView>
   );
 }
-
-import { Text } from 'react-native';
 

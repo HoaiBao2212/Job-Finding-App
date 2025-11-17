@@ -49,9 +49,9 @@ export default function Index() {
 
         {/* Navigation Buttons */}
         <View style={{ width: "100%", gap: 12 }}>
-          {/* Candidate Home */}
+          {/* Candidate JobFinding */}
           <TouchableOpacity
-            onPress={() => handleNavigate("/Candidate/Home")}
+            onPress={() => handleNavigate("/Candidate/JobFinding")}
             style={{
               paddingVertical: 16,
               paddingHorizontal: 20,

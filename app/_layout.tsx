@@ -9,12 +9,24 @@ export default function RootLayout() {
         options={{ title: "Profile" }}
       />
       <Stack.Screen
-        name="Candidate/Home"
-        options={{ title: "Home Ứng viên" }}
+        name="Candidate/JobFinding"
+        options={{ title: "Tìm việc" }}
       />
       <Stack.Screen
         name="Candidate/JobDetail"
         options={{ title: "Chi tiết công việc" }}
+      />
+      <Stack.Screen
+        name="Candidate/Apply"
+        options={{ title: "Đơn ứng tuyển" }}
+      />
+      <Stack.Screen
+        name="Candidate/Schedule"
+        options={{ title: "Lịch phỏng vấn" }}
+      />
+      <Stack.Screen
+        name="Candidate/Account"
+        options={{ title: "Tài khoản" }}
       />
     </Stack>
   );
