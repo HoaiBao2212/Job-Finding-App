@@ -1,7 +1,10 @@
-// app/(auth)/login.tsx  (hoặc path nào bạn đang dùng cho màn hình đăng nhập)
-
-import { theme } from "@/constants/theme";
+import { Fonts, theme } from "@/constants/theme";
+import { supabase } from "@/lib/supabase";
+import { router } from "expo-router";
+import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,7 +14,64 @@ import {
   View,
 } from "react-native";
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert("Thiếu thông tin", "Vui lòng nhập đầy đủ các trường");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Mật khẩu yếu", "Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Không khớp", "Mật khẩu và xác nhận mật khẩu không trùng");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        // optional: nếu bạn muốn lưu thêm metadata:
+        // options: {
+        //   data: {
+        //     full_name: fullName,
+        //   },
+        // },
+      });
+
+      if (error) {
+        Alert.alert("Đăng ký thất bại", error.message);
+        return;
+      }
+
+      // Tuỳ config Supabase:
+      // - Nếu bật email confirmation: user phải vào mail để xác nhận
+      // - Nếu tắt: có thể login luôn
+      Alert.alert(
+        "Thành công",
+        "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản."
+      );
+
+      // Điều hướng về màn đăng nhập
+      router.replace("/(auth)/login");
+    } catch (err: any) {
+      Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -20,18 +80,18 @@ export default function LoginScreen() {
       >
         {/* Logo + tên app */}
         <View style={styles.logoWrapper}>
-          <View style={styles.logoCircle}>
+          <View className="logoCircle" style={styles.logoCircle}>
             <Text style={styles.logoText}>JF</Text>
           </View>
           <Text style={styles.appName}>JobFinder</Text>
           <Text style={styles.appSubtitle}>
-            Đăng nhập để tìm công việc phù hợp với bạn
+            Tạo tài khoản để bắt đầu tìm việc
           </Text>
         </View>
 
-        {/* Card login */}
+        {/* Card đăng ký */}
         <View style={styles.card}>
-          <Text style={styles.title}>Đăng nhập</Text>
+          <Text style={styles.title}>Đăng ký</Text>
 
           {/* Email */}
           <View style={styles.field}>
@@ -42,28 +102,49 @@ export default function LoginScreen() {
               placeholderTextColor={theme.colors.textGray}
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
             />
           </View>
 
           {/* Mật khẩu */}
           <View style={styles.field}>
-            <View style={styles.labelRow}>
-              <Text style={styles.label}>Mật khẩu</Text>
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.label}>Mật khẩu</Text>
             <TextInput
               style={styles.input}
               placeholder="••••••••"
               placeholderTextColor={theme.colors.textGray}
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
             />
           </View>
 
-          {/* Nút đăng nhập */}
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.8}>
-            <Text style={styles.primaryButtonText}>Đăng nhập</Text>
+          {/* Xác nhận mật khẩu */}
+          <View style={styles.field}>
+            <Text style={styles.label}>Xác nhận mật khẩu</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="••••••••"
+              placeholderTextColor={theme.colors.textGray}
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+          </View>
+
+          {/* Nút đăng ký */}
+          <TouchableOpacity
+            style={[styles.primaryButton, loading && { opacity: 0.7 }]}
+            activeOpacity={0.8}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={theme.button.primary.text} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Đăng ký</Text>
+            )}
           </TouchableOpacity>
 
           {/* Hoặc */}
@@ -73,17 +154,17 @@ export default function LoginScreen() {
             <View style={styles.divider} />
           </View>
 
-          {/* Nút tiếp tục với Google (secondary) */}
+          {/* Nút Google (chưa làm) */}
           <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.8}>
             <Text style={styles.secondaryButtonText}>Tiếp tục với Google</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Chưa có tài khoản */}
+        {/* Đã có tài khoản */}
         <View style={styles.bottomRow}>
-          <Text style={styles.bottomText}>Chưa có tài khoản?</Text>
-          <TouchableOpacity>
-            <Text style={styles.bottomLink}>Đăng ký ngay</Text>
+          <Text style={styles.bottomText}>Đã có tài khoản?</Text>
+          <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
+            <Text style={styles.bottomLink}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -94,7 +175,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.primarySoftBg,
+    backgroundColor: theme.background.soft,
   },
   container: {
     flexGrow: 1,
@@ -119,20 +200,23 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontWeight: "700",
     fontSize: 22,
+    fontFamily: Fonts.sans,
   },
   appName: {
     fontSize: 22,
     fontWeight: "700",
-    color: theme.text.heading ?? theme.colors.textBlue,
+    color: theme.text.heading,
+    fontFamily: Fonts.sans,
   },
   appSubtitle: {
     marginTop: 4,
     fontSize: 14,
-    color: theme.colors.textGray,
+    color: theme.text.subtle,
     textAlign: "center",
+    fontFamily: Fonts.sans,
   },
   card: {
-    backgroundColor: theme.colors.white,
+    backgroundColor: theme.background.card,
     borderRadius: 16,
     padding: 20,
     shadowColor: "#000",
@@ -144,8 +228,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: theme.text.heading ?? theme.colors.textBlue,
+    color: theme.text.heading,
     marginBottom: 16,
+    fontFamily: Fonts.sans,
   },
   field: {
     marginBottom: 16,
@@ -154,17 +239,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textDark,
     marginBottom: 6,
-  },
-  labelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  forgotText: {
-    fontSize: 13,
-    color: theme.colors.primary,
-    fontWeight: "500",
+    fontFamily: Fonts.sans,
   },
   input: {
     borderRadius: 12,
@@ -175,6 +250,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: theme.colors.textDark,
+    fontFamily: Fonts.sans,
   },
   primaryButton: {
     marginTop: 8,
@@ -187,6 +263,7 @@ const styles = StyleSheet.create({
     color: theme.button.primary.text,
     fontSize: 16,
     fontWeight: "600",
+    fontFamily: Fonts.sans,
   },
   dividerRow: {
     flexDirection: "row",
@@ -202,19 +279,21 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     fontSize: 12,
     color: theme.colors.textGray,
+    fontFamily: Fonts.sans,
   },
   secondaryButton: {
     borderRadius: 14,
     paddingVertical: 11,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: theme.button.secondary.border ?? theme.colors.primary,
+    borderColor: theme.button.secondary.border,
     backgroundColor: theme.button.secondary.bg,
   },
   secondaryButtonText: {
     color: theme.button.secondary.text,
     fontSize: 15,
     fontWeight: "500",
+    fontFamily: Fonts.sans,
   },
   bottomRow: {
     flexDirection: "row",
@@ -225,10 +304,12 @@ const styles = StyleSheet.create({
   bottomText: {
     fontSize: 14,
     color: theme.colors.textGray,
+    fontFamily: Fonts.sans,
   },
   bottomLink: {
     fontSize: 14,
     color: theme.colors.primary,
     fontWeight: "600",
+    fontFamily: Fonts.sans,
   },
 });
