@@ -13,7 +13,7 @@ export default function Index() {
       <Text>Home Screen</Text>
 
       <TouchableOpacity
-        onPress={() => router.push("/Candidate/JobSearchScreen")}
+        onPress={() => router.push("/Candidate/LoginScreen")}
         style={{
           marginTop: 20,
           paddingHorizontal: 20,
