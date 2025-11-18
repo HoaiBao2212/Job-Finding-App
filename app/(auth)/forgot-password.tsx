@@ -1,10 +1,11 @@
+import AlertModal from "@/app/Component/AlertModal";
+import { useAlert } from "@/app/Component/useAlert";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -17,10 +18,11 @@ import {
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   const handleSendResetEmail = async () => {
     if (!email) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập email");
+      showAlert("Thiếu thông tin", "Vui lòng nhập email");
       return;
     }
 
@@ -32,19 +34,28 @@ export default function ForgotPasswordScreen() {
       });
 
       if (error) {
-        Alert.alert("Gửi thất bại", error.message);
+        showAlert("Gửi thất bại", error.message);
         return;
       }
 
-      Alert.alert(
+      showAlert(
         "Đã gửi",
-        "Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn."
+        "Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.",
+        [
+          {
+            text: "OK",
+            style: "default",
+            onPress: () => {
+              hideAlert();
+              router.replace("/(auth)/login");
+            },
+          },
+        ]
       );
 
       // quay lại màn đăng nhập
-      router.replace("/(auth)/login");
     } catch (err: any) {
-      Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
+      showAlert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -107,6 +118,15 @@ export default function ForgotPasswordScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }

@@ -1,9 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import * as React from 'react';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as React from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   SafeAreaView,
   ScrollView,
@@ -12,11 +11,13 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { colors } from '../../constants/theme';
-import { authService } from '../../lib/services/authService';
-import { employerService } from '../../lib/services/employerService';
-import EmployerSidebarLayout from '../Component/EmployerSidebarLayout';
+} from "react-native";
+import { colors } from "../../constants/theme";
+import { authService } from "../../lib/services/authService";
+import { employerService } from "../../lib/services/employerService";
+import AlertModal from "../Component/AlertModal";
+import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
+import { useAlert } from "../Component/useAlert";
 
 interface EmployerAccount {
   fullName: string;
@@ -24,7 +25,7 @@ interface EmployerAccount {
   phone: string;
   avatarUrl: string;
   joinDate: string;
-  verificationStatus: 'verified' | 'unverified';
+  verificationStatus: "verified" | "unverified";
   companyName?: string;
 }
 
@@ -32,6 +33,7 @@ export default function ApplicantAccountScreen() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(true);
   const [user, setUser] = React.useState<EmployerAccount | null>(null);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   const [notifications, setNotifications] = React.useState({
     email: true,
@@ -54,7 +56,7 @@ export default function ApplicantAccountScreen() {
       setLoading(true);
       const currentUser = await authService.getCurrentUser();
       if (!currentUser) {
-        router.push('/(auth)/login');
+        router.push("/(auth)/login");
         return;
       }
 
@@ -63,55 +65,57 @@ export default function ApplicantAccountScreen() {
 
       // Format join date
       const joinDate = new Date(currentUser.created_at || new Date());
-      const formattedDate = joinDate.toLocaleDateString('vi-VN');
+      const formattedDate = joinDate.toLocaleDateString("vi-VN");
 
       setUser({
-        fullName: profile.full_name || 'Nhà tuyển dụng',
-        email: currentUser.email || '',
-        phone: profile.phone || '',
-        avatarUrl: profile.avatar_url || 'https://i.pravatar.cc/150?img=32',
+        fullName: profile.full_name || "Nhà tuyển dụng",
+        email: currentUser.email || "",
+        phone: profile.phone || "",
+        avatarUrl: profile.avatar_url || "https://i.pravatar.cc/150?img=32",
         joinDate: formattedDate,
-        verificationStatus: currentUser.email_confirmed_at ? 'verified' : 'unverified',
-        companyName: employer?.company?.name || 'Chưa cập nhật',
+        verificationStatus: currentUser.email_confirmed_at
+          ? "verified"
+          : "unverified",
+        companyName: employer?.company?.name || "Chưa cập nhật",
       });
     } catch (error) {
-      console.error('Error loading user data:', error);
-      Alert.alert('Lỗi', 'Không thể tải thông tin người dùng');
+      console.error("Error loading user data:", error);
+      showAlert("Lỗi", "Không thể tải thông tin người dùng");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
-      { text: 'Hủy', onPress: () => {} },
+    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
+      { text: "Hủy", style: "cancel", onPress: () => hideAlert() },
       {
-        text: 'Đăng xuất',
+        text: "Đăng xuất",
+        style: "destructive",
         onPress: async () => {
           try {
             await authService.signOut();
-            router.push('/(auth)/login');
+            router.push("/(auth)/login");
           } catch (error) {
-            Alert.alert('Lỗi', 'Có lỗi khi đăng xuất');
+            showAlert("Lỗi", "Có lỗi khi đăng xuất");
           }
         },
-        style: 'destructive',
       },
     ]);
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Xóa tài khoản',
-      'Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn.',
+    showAlert(
+      "Xóa tài khoản",
+      "Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn.",
       [
-        { text: 'Hủy', onPress: () => {} },
+        { text: "Hủy", style: "cancel", onPress: () => hideAlert() },
         {
-          text: 'Xóa',
+          text: "Xóa",
+          style: "destructive",
           onPress: () => {
-            console.log('Account deleted');
+            console.log("Account deleted");
           },
-          style: 'destructive',
         },
       ]
     );
@@ -121,7 +125,7 @@ export default function ApplicantAccountScreen() {
     <Text
       style={{
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: "700",
         color: colors.textDark,
         marginBottom: 12,
         marginTop: 20,
@@ -147,8 +151,8 @@ export default function ApplicantAccountScreen() {
     <TouchableOpacity
       onPress={onPress}
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: colors.white,
         paddingHorizontal: 16,
         paddingVertical: 12,
@@ -166,7 +170,7 @@ export default function ApplicantAccountScreen() {
         <Text
           style={{
             fontSize: 14,
-            fontWeight: '500',
+            fontWeight: "500",
             color: colors.textDark,
             marginBottom: subtitle ? 4 : 0,
           }}
@@ -187,7 +191,7 @@ export default function ApplicantAccountScreen() {
       {badge && (
         <View
           style={{
-            backgroundColor: '#E63946',
+            backgroundColor: "#E63946",
             borderRadius: 12,
             paddingHorizontal: 8,
             paddingVertical: 4,
@@ -198,7 +202,7 @@ export default function ApplicantAccountScreen() {
             style={{
               fontSize: 11,
               color: colors.white,
-              fontWeight: '600',
+              fontWeight: "600",
             }}
           >
             {badge}
@@ -226,8 +230,8 @@ export default function ApplicantAccountScreen() {
   }) => (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: colors.white,
         paddingHorizontal: 16,
         paddingVertical: 12,
@@ -245,7 +249,7 @@ export default function ApplicantAccountScreen() {
         style={{
           flex: 1,
           fontSize: 14,
-          fontWeight: '500',
+          fontWeight: "500",
           color: colors.textDark,
         }}
       >
@@ -259,7 +263,9 @@ export default function ApplicantAccountScreen() {
     return (
       <EmployerSidebarLayout>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
@@ -271,8 +277,12 @@ export default function ApplicantAccountScreen() {
     return (
       <EmployerSidebarLayout>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: colors.textDark }}>Không thể tải dữ liệu</Text>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <Text style={{ color: colors.textDark }}>
+              Không thể tải dữ liệu
+            </Text>
           </View>
         </SafeAreaView>
       </EmployerSidebarLayout>
@@ -298,7 +308,7 @@ export default function ApplicantAccountScreen() {
               borderBottomColor: colors.borderLight,
             }}
           >
-            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
               <Image
                 source={{ uri: user.avatarUrl }}
                 style={{
@@ -313,7 +323,7 @@ export default function ApplicantAccountScreen() {
               <Text
                 style={{
                   fontSize: 20,
-                  fontWeight: '700',
+                  fontWeight: "700",
                   color: colors.textDark,
                   marginBottom: 4,
                 }}
@@ -331,12 +341,12 @@ export default function ApplicantAccountScreen() {
               </Text>
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   backgroundColor:
-                    user.verificationStatus === 'verified'
-                      ? '#E8F5E9'
-                      : '#FFF3E0',
+                    user.verificationStatus === "verified"
+                      ? "#E8F5E9"
+                      : "#FFF3E0",
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 20,
@@ -344,46 +354,48 @@ export default function ApplicantAccountScreen() {
               >
                 <MaterialCommunityIcons
                   name={
-                    user.verificationStatus === 'verified'
-                      ? 'check-circle'
-                      : 'alert-circle'
+                    user.verificationStatus === "verified"
+                      ? "check-circle"
+                      : "alert-circle"
                   }
                   size={14}
                   color={
-                    user.verificationStatus === 'verified' ? '#2E7D32' : '#F57C00'
+                    user.verificationStatus === "verified"
+                      ? "#2E7D32"
+                      : "#F57C00"
                   }
                   style={{ marginRight: 6 }}
                 />
                 <Text
                   style={{
                     fontSize: 12,
-                    fontWeight: '600',
+                    fontWeight: "600",
                     color:
-                      user.verificationStatus === 'verified'
-                        ? '#2E7D32'
-                        : '#F57C00',
+                      user.verificationStatus === "verified"
+                        ? "#2E7D32"
+                        : "#F57C00",
                   }}
                 >
-                  {user.verificationStatus === 'verified'
-                    ? 'Đã xác minh'
-                    : 'Chưa xác minh'}
+                  {user.verificationStatus === "verified"
+                    ? "Đã xác minh"
+                    : "Chưa xác minh"}
                 </Text>
               </View>
             </View>
 
             <TouchableOpacity
-              onPress={() => router.push('/Employer/EditProfile' as any)}
+              onPress={() => router.push("/Employer/EditProfile" as any)}
               style={{
                 backgroundColor: colors.primarySoftBg,
                 paddingVertical: 10,
                 borderRadius: 8,
-                alignItems: 'center',
+                alignItems: "center",
               }}
             >
               <Text
                 style={{
                   fontSize: 14,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: colors.primary,
                 }}
               >
@@ -396,11 +408,17 @@ export default function ApplicantAccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Thông tin tài khoản" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
@@ -426,7 +444,7 @@ export default function ApplicantAccountScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: "500",
                       color: colors.textDark,
                     }}
                   >
@@ -437,8 +455,8 @@ export default function ApplicantAccountScreen() {
 
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
@@ -464,19 +482,19 @@ export default function ApplicantAccountScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: "500",
                       color: colors.textDark,
                     }}
                   >
-                    {user.phone || 'Chưa cập nhật'}
+                    {user.phone || "Chưa cập nhật"}
                   </Text>
                 </View>
               </View>
 
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                 }}
@@ -500,7 +518,7 @@ export default function ApplicantAccountScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: "500",
                       color: colors.textDark,
                     }}
                   >
@@ -515,7 +533,13 @@ export default function ApplicantAccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Thông báo" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <NotificationToggle
                 icon="email-outline"
                 title="Thông báo qua Email"
@@ -567,7 +591,13 @@ export default function ApplicantAccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Bảo mật & Riêng tư" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <SettingItem
                 icon="lock-outline"
                 title="Đổi mật khẩu"
@@ -607,7 +637,13 @@ export default function ApplicantAccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Trợ giúp & Hỗ trợ" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <SettingItem
                 icon="help-circle-outline"
                 title="Trung tâm trợ giúp"
@@ -635,12 +671,18 @@ export default function ApplicantAccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Khu vực nguy hiểm" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <TouchableOpacity
                 onPress={handleLogout}
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
@@ -657,8 +699,8 @@ export default function ApplicantAccountScreen() {
                   style={{
                     flex: 1,
                     fontSize: 14,
-                    fontWeight: '500',
-                    color: '#E63946',
+                    fontWeight: "500",
+                    color: "#E63946",
                   }}
                 >
                   Đăng xuất
@@ -673,8 +715,8 @@ export default function ApplicantAccountScreen() {
               <TouchableOpacity
                 onPress={handleDeleteAccount}
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                 }}
@@ -689,8 +731,8 @@ export default function ApplicantAccountScreen() {
                   style={{
                     flex: 1,
                     fontSize: 14,
-                    fontWeight: '500',
-                    color: '#E63946',
+                    fontWeight: "500",
+                    color: "#E63946",
                   }}
                 >
                   Xóa tài khoản
@@ -706,6 +748,15 @@ export default function ApplicantAccountScreen() {
 
           <View style={{ height: 32 }} />
         </ScrollView>
+
+        {/* Alert Modal */}
+        <AlertModal
+          visible={alertState.visible}
+          title={alertState.title}
+          message={alertState.message}
+          buttons={alertState.buttons}
+          onDismiss={hideAlert}
+        />
       </SafeAreaView>
     </EmployerSidebarLayout>
   );

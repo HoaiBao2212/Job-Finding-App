@@ -1,19 +1,21 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import * as React from 'react';
+import { supabase } from "@/lib/supabase";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as React from "react";
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { colors } from '../../constants/theme';
-import SidebarLayout from '../Component/SidebarLayout';
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { colors } from "../../constants/theme";
+import AlertModal from "../Component/AlertModal";
+import SidebarLayout from "../Component/SidebarLayout";
+import { useAlert } from "../Component/useAlert";
 
 interface UserAccount {
   name: string;
@@ -21,18 +23,19 @@ interface UserAccount {
   phone: string;
   avatar: string;
   joinDate: string;
-  verificationStatus: 'verified' | 'unverified';
+  verificationStatus: "verified" | "unverified";
 }
 
 export default function AccountScreen() {
   const router = useRouter();
+  const { alertState, showAlert, hideAlert } = useAlert();
   const [user, setUser] = React.useState<UserAccount>({
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '+84 912 345 678',
-    avatar: 'https://i.pravatar.cc/150?img=32',
-    joinDate: '15/01/2024',
-    verificationStatus: 'verified',
+    name: "Nguyễn Văn A",
+    email: "nguyenvana@example.com",
+    phone: "+84 912 345 678",
+    avatar: "https://i.pravatar.cc/150?img=32",
+    joinDate: "15/01/2024",
+    verificationStatus: "verified",
   });
 
   const [notifications, setNotifications] = React.useState({
@@ -48,31 +51,50 @@ export default function AccountScreen() {
   });
 
   const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
-      { text: 'Hủy', onPress: () => {} },
+    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
       {
-        text: 'Đăng xuất',
-        onPress: () => {
-          // Handle logout
-          console.log('Logged out');
+        text: "Hủy",
+        style: "cancel",
+        onPress: () => hideAlert(),
+      },
+      {
+        text: "Đăng xuất",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            // 1. Thực hiện đăng xuất Supabase
+            const { error } = await supabase.auth.signOut();
+
+            if (error) {
+              showAlert("Lỗi", error.message);
+              return;
+            }
+
+            // 2. Chuyển về màn login
+            router.replace("/(auth)/login");
+          } catch (err: any) {
+            showAlert(
+              "Lỗi",
+              err?.message || "Không thể đăng xuất. Hãy thử lại."
+            );
+          }
         },
-        style: 'destructive',
       },
     ]);
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Xóa tài khoản',
-      'Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn.',
+    showAlert(
+      "Xóa tài khoản",
+      "Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn.",
       [
-        { text: 'Hủy', onPress: () => {} },
+        { text: "Hủy", style: "cancel", onPress: () => hideAlert() },
         {
-          text: 'Xóa',
+          text: "Xóa",
+          style: "destructive",
           onPress: () => {
-            console.log('Account deleted');
+            console.log("Account deleted");
           },
-          style: 'destructive',
         },
       ]
     );
@@ -82,7 +104,7 @@ export default function AccountScreen() {
     <Text
       style={{
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: "700",
         color: colors.textDark,
         marginBottom: 12,
         marginTop: 20,
@@ -108,8 +130,8 @@ export default function AccountScreen() {
     <TouchableOpacity
       onPress={onPress}
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: colors.white,
         paddingHorizontal: 16,
         paddingVertical: 12,
@@ -127,7 +149,7 @@ export default function AccountScreen() {
         <Text
           style={{
             fontSize: 14,
-            fontWeight: '500',
+            fontWeight: "500",
             color: colors.textDark,
             marginBottom: subtitle ? 4 : 0,
           }}
@@ -148,7 +170,7 @@ export default function AccountScreen() {
       {badge && (
         <View
           style={{
-            backgroundColor: '#E63946',
+            backgroundColor: "#E63946",
             borderRadius: 12,
             paddingHorizontal: 8,
             paddingVertical: 4,
@@ -159,7 +181,7 @@ export default function AccountScreen() {
             style={{
               fontSize: 11,
               color: colors.white,
-              fontWeight: '600',
+              fontWeight: "600",
             }}
           >
             {badge}
@@ -187,8 +209,8 @@ export default function AccountScreen() {
   }) => (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: colors.white,
         paddingHorizontal: 16,
         paddingVertical: 12,
@@ -206,7 +228,7 @@ export default function AccountScreen() {
         style={{
           flex: 1,
           fontSize: 14,
-          fontWeight: '500',
+          fontWeight: "500",
           color: colors.textDark,
         }}
       >
@@ -235,7 +257,7 @@ export default function AccountScreen() {
               borderBottomColor: colors.borderLight,
             }}
           >
-            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
               <Image
                 source={{ uri: user.avatar }}
                 style={{
@@ -250,7 +272,7 @@ export default function AccountScreen() {
               <Text
                 style={{
                   fontSize: 20,
-                  fontWeight: '700',
+                  fontWeight: "700",
                   color: colors.textDark,
                   marginBottom: 4,
                 }}
@@ -259,12 +281,12 @@ export default function AccountScreen() {
               </Text>
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   backgroundColor:
-                    user.verificationStatus === 'verified'
-                      ? '#E8F5E9'
-                      : '#FFF3E0',
+                    user.verificationStatus === "verified"
+                      ? "#E8F5E9"
+                      : "#FFF3E0",
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 20,
@@ -272,29 +294,31 @@ export default function AccountScreen() {
               >
                 <MaterialCommunityIcons
                   name={
-                    user.verificationStatus === 'verified'
-                      ? 'check-circle'
-                      : 'alert-circle'
+                    user.verificationStatus === "verified"
+                      ? "check-circle"
+                      : "alert-circle"
                   }
                   size={14}
                   color={
-                    user.verificationStatus === 'verified' ? '#2E7D32' : '#F57C00'
+                    user.verificationStatus === "verified"
+                      ? "#2E7D32"
+                      : "#F57C00"
                   }
                   style={{ marginRight: 6 }}
                 />
                 <Text
                   style={{
                     fontSize: 12,
-                    fontWeight: '600',
+                    fontWeight: "600",
                     color:
-                      user.verificationStatus === 'verified'
-                        ? '#2E7D32'
-                        : '#F57C00',
+                      user.verificationStatus === "verified"
+                        ? "#2E7D32"
+                        : "#F57C00",
                   }}
                 >
-                  {user.verificationStatus === 'verified'
-                    ? 'Đã xác minh'
-                    : 'Chưa xác minh'}
+                  {user.verificationStatus === "verified"
+                    ? "Đã xác minh"
+                    : "Chưa xác minh"}
                 </Text>
               </View>
             </View>
@@ -304,13 +328,13 @@ export default function AccountScreen() {
                 backgroundColor: colors.primarySoftBg,
                 paddingVertical: 10,
                 borderRadius: 8,
-                alignItems: 'center',
+                alignItems: "center",
               }}
             >
               <Text
                 style={{
                   fontSize: 14,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: colors.primary,
                 }}
               >
@@ -325,15 +349,15 @@ export default function AccountScreen() {
 
             {/* Edit Profile Button */}
             <TouchableOpacity
-              onPress={() => router.push('/Candidate/EditProfile')}
+              onPress={() => router.push("/Candidate/EditProfile")}
               style={{
                 backgroundColor: colors.primary,
                 borderRadius: 12,
                 paddingVertical: 14,
-                alignItems: 'center',
+                alignItems: "center",
                 marginBottom: 16,
-                flexDirection: 'row',
-                justifyContent: 'center',
+                flexDirection: "row",
+                justifyContent: "center",
               }}
             >
               <MaterialCommunityIcons
@@ -346,18 +370,24 @@ export default function AccountScreen() {
                 style={{
                   color: colors.white,
                   fontSize: 14,
-                  fontWeight: '600',
+                  fontWeight: "600",
                 }}
               >
                 Chỉnh sửa hồ sơ
               </Text>
             </TouchableOpacity>
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
@@ -383,7 +413,7 @@ export default function AccountScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: "500",
                       color: colors.textDark,
                     }}
                   >
@@ -394,8 +424,8 @@ export default function AccountScreen() {
 
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
@@ -421,7 +451,7 @@ export default function AccountScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: "500",
                       color: colors.textDark,
                     }}
                   >
@@ -432,8 +462,8 @@ export default function AccountScreen() {
 
               <View
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                 }}
@@ -457,7 +487,7 @@ export default function AccountScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: "500",
                       color: colors.textDark,
                     }}
                   >
@@ -472,7 +502,13 @@ export default function AccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Thông báo" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <NotificationToggle
                 icon="email-outline"
                 title="Thông báo qua Email"
@@ -524,7 +560,13 @@ export default function AccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Bảo mật & Riêng tư" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <SettingItem
                 icon="lock-outline"
                 title="Đổi mật khẩu"
@@ -564,7 +606,13 @@ export default function AccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Trợ giúp & Hỗ trợ" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <SettingItem
                 icon="help-circle-outline"
                 title="Trung tâm trợ giúp"
@@ -592,12 +640,18 @@ export default function AccountScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Khu vực nguy hiểm" />
 
-            <View style={{ backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' }}>
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
               <TouchableOpacity
                 onPress={handleLogout}
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
@@ -614,8 +668,8 @@ export default function AccountScreen() {
                   style={{
                     flex: 1,
                     fontSize: 14,
-                    fontWeight: '500',
-                    color: '#E63946',
+                    fontWeight: "500",
+                    color: "#E63946",
                   }}
                 >
                   Đăng xuất
@@ -630,8 +684,8 @@ export default function AccountScreen() {
               <TouchableOpacity
                 onPress={handleDeleteAccount}
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                 }}
@@ -646,8 +700,8 @@ export default function AccountScreen() {
                   style={{
                     flex: 1,
                     fontSize: 14,
-                    fontWeight: '500',
-                    color: '#E63946',
+                    fontWeight: "500",
+                    color: "#E63946",
                   }}
                 >
                   Xóa tài khoản
@@ -663,6 +717,15 @@ export default function AccountScreen() {
 
           <View style={{ height: 32 }} />
         </ScrollView>
+
+        {/* Alert Modal */}
+        <AlertModal
+          visible={alertState.visible}
+          title={alertState.title}
+          message={alertState.message}
+          buttons={alertState.buttons}
+          onDismiss={hideAlert}
+        />
       </SafeAreaView>
     </SidebarLayout>
   );

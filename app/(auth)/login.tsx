@@ -1,28 +1,30 @@
 // app/(auth)/login.tsx
+import AlertModal from "@/app/Component/AlertModal";
+import { useAlert } from "@/app/Component/useAlert";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập đủ email và mật khẩu");
+      showAlert("Thiếu thông tin", "Vui lòng nhập đủ email và mật khẩu");
       return;
     }
 
@@ -36,7 +38,7 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        Alert.alert("Đăng nhập thất bại", error.message);
+        showAlert("Đăng nhập thất bại", error.message);
         return;
       }
 
@@ -47,7 +49,7 @@ export default function LoginScreen() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        Alert.alert("Lỗi", "Không lấy được thông tin tài khoản.");
+        showAlert("Lỗi", "Không lấy được thông tin tài khoản.");
         return;
       }
 
@@ -82,14 +84,14 @@ export default function LoginScreen() {
         router.replace("/Employer/Dashboard");
       } else {
         // Trường hợp role bị null hoặc giá trị lạ
-        Alert.alert(
+        showAlert(
           "Thiếu vai trò",
           "Bạn chưa chọn vai trò. Vui lòng hoàn thiện hồ sơ."
         );
         router.replace("/complete-profile");
       }
     } catch (err: any) {
-      Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
+      showAlert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -175,6 +177,15 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }

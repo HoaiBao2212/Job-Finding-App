@@ -1,8 +1,17 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { usePathname, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Animated, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
-import { colors } from '../../constants/theme';
+import { supabase } from "@/lib/supabase";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { usePathname, useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Animated,
+  SafeAreaView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { colors } from "../../constants/theme";
+import AlertModal from "./AlertModal";
+import { useAlert } from "./useAlert";
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -15,17 +24,22 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { icon: 'home', label: 'Việc làm', route: '/Candidate/JobFinding' },
-  { icon: 'file-document', label: 'Đơn ứng tuyển', route: '/Candidate/Apply' },
-  { icon: 'calendar', label: 'Lịch phỏng vấn', route: '/Candidate/Schedule' },
-  { icon: 'account', label: 'Hồ sơ', route: '/Candidate/CandidateProfileScreen' },
-  { icon: 'cog', label: 'Tài khoản', route: '/Candidate/Account' },
+  { icon: "home", label: "Việc làm", route: "/Candidate/JobFinding" },
+  { icon: "file-document", label: "Đơn ứng tuyển", route: "/Candidate/Apply" },
+  { icon: "calendar", label: "Lịch phỏng vấn", route: "/Candidate/Schedule" },
+  {
+    icon: "account",
+    label: "Hồ sơ",
+    route: "/Candidate/CandidateProfileScreen",
+  },
+  { icon: "cog", label: "Tài khoản", route: "/Candidate/Account" },
 ];
 
 export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
   const sidebarAnimation = React.useRef(new Animated.Value(0)).current;
 
   const toggleSidebar = () => {
@@ -61,14 +75,45 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     }).start();
     setIsOpen(false);
   };
+  const handleLogout = () => {
+    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
+      {
+        text: "Hủy",
+        style: "cancel",
+        onPress: () => hideAlert(),
+      },
+      {
+        text: "Đăng xuất",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const { error } = await supabase.auth.signOut();
+
+            if (error) {
+              showAlert("Lỗi", error.message);
+              return;
+            }
+
+            // Reset stack về màn login
+            router.replace("/(auth)/login");
+          } catch (err: any) {
+            showAlert(
+              "Lỗi",
+              err?.message || "Không thể đăng xuất. Hãy thử lại."
+            );
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-      <View style={{ flex: 1, flexDirection: 'row' }}>
+      <View style={{ flex: 1, flexDirection: "row" }}>
         {/* Sidebar */}
         <Animated.View
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: 0,
             top: 0,
             bottom: 0,
@@ -78,7 +123,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             borderRightColor: colors.borderLight,
             zIndex: 1000,
             transform: [{ translateX: sidebarTranslate }],
-            shadowColor: '#000',
+            shadowColor: "#000",
             shadowOffset: { width: 2, height: 0 },
             shadowOpacity: 0.25,
             shadowRadius: 3.84,
@@ -101,8 +146,8 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                 height: 48,
                 borderRadius: 24,
                 backgroundColor: colors.primarySoftBg,
-                justifyContent: 'center',
-                alignItems: 'center',
+                justifyContent: "center",
+                alignItems: "center",
                 marginBottom: 12,
               }}
             >
@@ -115,7 +160,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             <Text
               style={{
                 fontSize: 18,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: colors.textDark,
               }}
             >
@@ -131,14 +176,16 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                 key={item.route}
                 onPress={() => handleMenuPress(item.route)}
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   paddingVertical: 12,
                   paddingHorizontal: 16,
                   marginHorizontal: 8,
                   marginVertical: 4,
                   borderRadius: 8,
-                  backgroundColor: isActive ? colors.primarySoftBg : 'transparent',
+                  backgroundColor: isActive
+                    ? colors.primarySoftBg
+                    : "transparent",
                 }}
               >
                 <MaterialCommunityIcons
@@ -150,7 +197,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: isActive ? '600' : '500',
+                    fontWeight: isActive ? "600" : "500",
                     color: isActive ? colors.primary : colors.textDark,
                   }}
                 >
@@ -163,7 +210,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
           {/* Sidebar Footer */}
           <View
             style={{
-              position: 'absolute',
+              position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
@@ -173,9 +220,10 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             }}
           >
             <TouchableOpacity
+              onPress={handleLogout}
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
+                flexDirection: "row",
+                alignItems: "center",
                 paddingVertical: 12,
                 paddingHorizontal: 12,
               }}
@@ -189,7 +237,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
               <Text
                 style={{
                   fontSize: 14,
-                  fontWeight: '500',
+                  fontWeight: "500",
                   color: colors.textGray,
                 }}
               >
@@ -205,7 +253,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             activeOpacity={1}
             onPress={closeSidebar}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
@@ -216,7 +264,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             <Animated.View
               style={{
                 flex: 1,
-                backgroundColor: '#000',
+                backgroundColor: "#000",
                 opacity: overlayOpacity,
               }}
             />
@@ -224,12 +272,12 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
         )}
 
         {/* Main Content */}
-        <View style={{ flex: 1, position: 'relative' }}>
+        <View style={{ flex: 1, position: "relative" }}>
           {/* Toggle Button */}
           <TouchableOpacity
             onPress={toggleSidebar}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 16,
               left: 16,
               zIndex: 100,
@@ -237,8 +285,8 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
               height: 44,
               borderRadius: 22,
               backgroundColor: colors.primary,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
               shadowColor: colors.shadowLight,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
@@ -247,7 +295,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             }}
           >
             <MaterialCommunityIcons
-              name={isOpen ? 'close' : 'menu'}
+              name={isOpen ? "close" : "menu"}
               size={24}
               color={colors.white}
             />
@@ -257,7 +305,15 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
           {children}
         </View>
       </View>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }
-
