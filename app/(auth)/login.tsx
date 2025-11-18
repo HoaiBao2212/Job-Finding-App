@@ -4,15 +4,15 @@ import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -79,7 +79,7 @@ export default function LoginScreen() {
       if (profile.role === "candidate") {
         router.replace("/Candidate/JobFinding");
       } else if (profile.role === "employer") {
-        router.replace("/Applicant/Dashboard");
+        router.replace("/Employer/Dashboard");
       } else {
         // Trường hợp role bị null hoặc giá trị lạ
         Alert.alert(

@@ -135,7 +135,8 @@ export default function CompleteProfileScreen() {
         return;
       }
 
-      const { error } = await supabase.from("profiles").upsert(
+      // Cập nhập profiles table
+      const { error: profileError } = await supabase.from("profiles").upsert(
         {
           id: user.id,
           full_name: fullName,
@@ -144,18 +145,90 @@ export default function CompleteProfileScreen() {
           avatar_url: avatarUrl,
           role,
           location,
+          updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
       );
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Nếu là candidate, tạo/update candidate_profiles record
+      if (role === "candidate") {
+        const { data: candidateProfile, error: fetchError } = await supabase
+          .from("candidate_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (fetchError && fetchError.code !== "PGRST116") {
+          throw fetchError;
+        }
+
+        if (!candidateProfile) {
+          const { error: candidateInsertError } = await supabase
+            .from("candidate_profiles")
+            .insert({
+              user_id: user.id,
+              preferred_locations: location,
+            });
+
+          if (candidateInsertError) throw candidateInsertError;
+        } else {
+          const { error: candidateUpdateError } = await supabase
+            .from("candidate_profiles")
+            .update({ preferred_locations: location })
+            .eq("user_id", user.id);
+
+          if (candidateUpdateError) throw candidateUpdateError;
+        }
+      }
+
+      // Nếu là employer, tạo/update employers record
+      if (role === "employer") {
+        const { data: employer, error: fetchError } = await supabase
+          .from("employers")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (fetchError && fetchError.code !== "PGRST116") {
+          throw fetchError;
+        }
+
+        if (!employer) {
+          // Tạo một company mặc định trước khi tạo employer
+          const { data: company, error: companyError } = await supabase
+            .from("companies")
+            .insert({
+              name: "Chưa cập nhập công ty",
+              location: location,
+            })
+            .select()
+            .single();
+
+          if (companyError) throw companyError;
+
+          const { error: employerInsertError } = await supabase
+            .from("employers")
+            .insert({
+              user_id: user.id,
+              company_id: company.id,
+            });
+
+          if (employerInsertError) throw employerInsertError;
+        }
+      }
 
       Alert.alert("Thành công", "Đã lưu thông tin hồ sơ của bạn.", [
         {
           text: "OK",
           onPress: () => {
-            // Sau khi lưu có thể điều hướng:
-            // router.replace("/Candidate/LoginScreen");
+            // Điều hướng dựa trên role
+            if (role === "employer") {
+              router.replace("/Employer/Dashboard");
+            } else if (role === "candidate") {
+              router.replace("/Candidate/JobFinding");
+            }
           },
         },
       ]);

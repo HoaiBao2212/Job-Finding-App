@@ -1,20 +1,23 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { colors } from '../../constants/theme';
-import ApplicantSidebarLayout from '../Component/ApplicantSidebarLayout';
+import { authService } from '../../lib/services/authService';
+import { employerService } from '../../lib/services/employerService';
+import { jobService } from '../../lib/services/jobService';
+import EmployerSidebarLayout from '../Component/EmployerSidebarLayout';
 
 interface Candidate {
   id: string;
@@ -36,8 +39,44 @@ export default function CandidateApplyScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'reviewing' | 'accepted' | 'rejected' | 'interview'>('all');
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [employerId, setEmployerId] = useState<number | null>(null);
 
-  const candidates: Candidate[] = [
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push('/(auth)/login');
+        return;
+      }
+
+      const employer = await employerService.getEmployerProfile(user.id);
+      if (employer?.id) {
+        setEmployerId(employer.id);
+        // Lấy danh sách công việc của employer
+        const jobs = await jobService.getEmployerJobs(employer.id);
+        // Lấy danh sách ứng tuyển cho các công việc
+        const allApplications: any[] = [];
+        for (const job of jobs) {
+          const apps = await jobService.getApplications(job.id);
+          allApplications.push(...apps);
+        }
+        setCandidates(allApplications);
+      }
+    } catch (error) {
+      console.error('Error loading applications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const defaultCandidates: Candidate[] = [
     {
       id: '1',
       name: 'Nguyễn Văn A',
@@ -540,7 +579,7 @@ export default function CandidateApplyScreen() {
   };
 
   return (
-    <ApplicantSidebarLayout>
+    <EmployerSidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
 
@@ -813,6 +852,6 @@ export default function CandidateApplyScreen() {
         </View>
         </ScrollView>
       </SafeAreaView>
-    </ApplicantSidebarLayout>
+    </EmployerSidebarLayout>
   );
 }

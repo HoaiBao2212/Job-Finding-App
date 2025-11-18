@@ -1,18 +1,21 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    FlatList,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  FlatList,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { colors } from '../../constants/theme';
-import ApplicantSidebarLayout from '../Component/ApplicantSidebarLayout';
+import { authService } from '../../lib/services/authService';
+import { employerService } from '../../lib/services/employerService';
+import { jobService } from '../../lib/services/jobService';
+import EmployerSidebarLayout from '../Component/EmployerSidebarLayout';
 
 interface JobPosting {
   id: string;
@@ -35,84 +38,35 @@ export default function JobApplicationScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'closed' | 'draft'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'applications'>('newest');
+  const [loading, setLoading] = useState(true);
+  const [jobPostings, setJobPostings] = useState<any[]>([]);
+  const [employerId, setEmployerId] = useState<number | null>(null);
 
-  const jobPostings: JobPosting[] = [
-    {
-      id: '1',
-      title: 'React Native Developer',
-      company: 'ABC Company',
-      location: 'TP. Hồ Chí Minh',
-      salary: '15 - 25 triệu',
-      applications: 24,
-      views: 320,
-      status: 'active',
-      createdDate: '5 ngày trước',
-      deadline: '15/12/2025',
-      level: 'mid',
-      applicantsCv: 18,
-      description: 'Tuyển dụng React Native Developer có kinh nghiệm 2+ năm',
-    },
-    {
-      id: '2',
-      title: 'UI/UX Designer',
-      company: 'XYZ Creative',
-      location: 'Hà Nội',
-      salary: '12 - 20 triệu',
-      applications: 16,
-      views: 280,
-      status: 'active',
-      createdDate: '12 ngày trước',
-      deadline: '20/12/2025',
-      level: 'mid',
-      applicantsCv: 12,
-      description: 'Tìm kiếm UI/UX Designer sáng tạo và chuyên nghiệp',
-    },
-    {
-      id: '3',
-      title: 'Backend Developer',
-      company: 'Tech Solutions',
-      location: 'TP. Hồ Chí Minh',
-      salary: '18 - 30 triệu',
-      applications: 8,
-      views: 185,
-      status: 'closed',
-      createdDate: '30 ngày trước',
-      deadline: '10/11/2025',
-      level: 'senior',
-      applicantsCv: 7,
-      description: 'Backend Developer Node.js/Python có kinh nghiệm',
-    },
-    {
-      id: '4',
-      title: 'Frontend Developer',
-      company: 'Web Studio',
-      location: 'Đà Nẵng',
-      salary: '10 - 18 triệu',
-      applications: 32,
-      views: 450,
-      status: 'active',
-      createdDate: '2 ngày trước',
-      deadline: '25/12/2025',
-      level: 'entry',
-      applicantsCv: 28,
-      description: 'Tuyển Frontend Developer sử dụng React/Vue',
-    },
-    {
-      id: '5',
-      title: 'Project Manager',
-      company: 'Business Corp',
-      location: 'TP. Hồ Chí Minh',
-      salary: '20 - 35 triệu',
-      applications: 5,
-      views: 120,
-      status: 'draft',
-      createdDate: 'Hôm nay',
-      deadline: '30/12/2025',
-      level: 'senior',
-      applicantsCv: 0,
-      description: 'Project Manager quản lý team IT',
-    },
-  ];
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push('/(auth)/login');
+        return;
+      }
+
+      const employer = await employerService.getEmployerProfile(user.id);
+      if (employer?.id) {
+        setEmployerId(employer.id);
+        const jobs = await jobService.getEmployerJobs(employer.id);
+        setJobPostings(jobs);
+      }
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -419,6 +373,11 @@ export default function JobApplicationScreen() {
           }}
         >
           <TouchableOpacity
+            onPress={()=> router.push({
+                    pathname:'/Employer/JobDetail',
+                    
+                  } )}
+            
             style={{
               flex: 1,
               paddingVertical: 10,
@@ -477,7 +436,7 @@ export default function JobApplicationScreen() {
   };
 
   return (
-    <ApplicantSidebarLayout>
+    <EmployerSidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
 
@@ -516,6 +475,7 @@ export default function JobApplicationScreen() {
               Tin tuyển dụng
             </Text>
             <TouchableOpacity
+              onPress={() => router.push('/Employer/JobPosting' as any)}
               style={{
                 backgroundColor: 'rgba(255,255,255,0.2)',
                 paddingHorizontal: 10,
@@ -767,6 +727,6 @@ export default function JobApplicationScreen() {
         </View>
         </ScrollView>
       </SafeAreaView>
-    </ApplicantSidebarLayout>
+    </EmployerSidebarLayout>
   );
 }

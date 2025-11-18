@@ -1,0 +1,42 @@
+id,company_id,created_by_employer_id,title,description,requirements,location,job_type,experience_level,salary_min,salary_max,salary_currency,is_active,deadline,view_count,created_at,updated_at
+1,1,1,"React Native Developer","Chúng tôi tìm kiếm một React Native Developer tài năng để tham gia vào dự án di động của chúng tôi. Bạn sẽ làm việc với team động và sáng tạo.","- 3+ năm kinh nghiệm với React Native
+- Thành thạo JavaScript/TypeScript
+- Hiểu biết về React Native Architecture
+- Có kinh nghiệm với state management (Redux, Context API)
+- Kỹ năng communication tốt","Đà Nẵng","full-time","mid",15000000,25000000,"VND",true,"2024-12-31T23:59:59+00:00",145,"2024-11-18T10:00:00+00:00","2024-11-18T10:00:00+00:00"
+2,1,1,"Senior Backend Engineer","Tìm kiếm một Senior Backend Engineer với kinh nghiệm xây dựng các hệ thống scalable. Bạn sẽ dẫn dắt một nhóm các developer backend.","- 5+ năm kinh nghiệm backend development
+- Thành thạo Node.js hoặc Python
+- Hiểu biết về microservices architecture
+- Kinh nghiệm với PostgreSQL, MongoDB
+- Leadership skills
+- Tiếng Anh tốt","Đà Nẵng","full-time","senior",25000000,40000000,"VND",true,"2024-12-15T23:59:59+00:00",89,"2024-11-18T10:15:00+00:00","2024-11-18T10:15:00+00:00"
+3,2,2,"UX/UI Designer","Chúng tôi cần một UX/UI Designer sáng tạo để thiết kế giao diện cho ứng dụng mobile và web của chúng tôi.","- 2+ năm kinh nghiệm thiết kế
+- Thành thạo Figma hoặc Adobe XD
+- Hiểu biết về UX principles
+- Portfolio mạnh
+- Kỹ năng communication tốt","Đà Nẵng","full-time","junior",10000000,15000000,"VND",true,"2024-12-20T23:59:59+00:00",67,"2024-11-18T11:00:00+00:00","2024-11-18T11:00:00+00:00"
+4,2,2,"QA Engineer (Automation)","Tuyển dụng QA Engineer có kinh nghiệm với automation testing. Bạn sẽ làm việc với team development để đảm bảo chất lượng sản phẩm.","- 2+ năm kinh nghiệm QA
+- Thành thạo Selenium hoặc Cypress
+- Hiểu biết về testing frameworks
+- Kỹ năng scripting (Python, JavaScript)
+- Attention to detail","Đà Nẵng","full-time","mid",12000000,18000000,"VND",true,"2024-12-10T23:59:59+00:00",54,"2024-11-18T12:00:00+00:00","2024-11-18T12:00:00+00:00"
+5,1,1,"Frontend Developer (Intern)","Chúng tôi đang tìm kiếm các Intern Frontend để học hỏi và phát triển kỹ năng lập trình. Cơ hội tuyệt vời để bắt đầu sự nghiệp.","- Kiến thức về HTML, CSS, JavaScript
+- Kinh nghiệm với React là lợi thế
+- Đang học hoặc vừa tốt nghiệp
+- Hứng thú với Frontend development
+- Khả năng học hỏi nhanh","Đà Nẵng","internship","junior",5000000,8000000,"VND",true,"2024-12-25T23:59:59+00:00",32,"2024-11-18T13:00:00+00:00","2024-11-18T13:00:00+00:00"
+6,2,2,"DevOps Engineer","Tìm DevOps Engineer có kinh nghiệm với container và cloud infrastructure. Bạn sẽ quản lý CI/CD pipeline và infrastructure.","- 3+ năm kinh nghiệm DevOps
+- Thành thạo Docker, Kubernetes
+- Kinh nghiệm với AWS hoặc GCP
+- Hiểu biết về CI/CD (Jenkins, GitLab CI)
+- Scripting skills (Bash, Python)","Đà Nẵng","full-time","mid",18000000,28000000,"VND",true,"2024-12-18T23:59:59+00:00",78,"2024-11-18T14:00:00+00:00","2024-11-18T14:00:00+00:00"
+7,1,1,"Data Analyst","Chúng tôi cần một Data Analyst để giúp chúng tôi phân tích dữ liệu và đưa ra insight hữu ích.","- 2+ năm kinh nghiệm data analysis
+- Thành thạo SQL, Python hoặc R
+- Kinh nghiệm với Power BI hoặc Tableau
+- Hiểu biết về statistics
+- Kỹ năng presentation tốt","Đà Nẵng","full-time","mid",13000000,20000000,"VND",true,"2024-12-22T23:59:59+00:00",41,"2024-11-18T15:00:00+00:00","2024-11-18T15:00:00+00:00"
+8,2,2,"Product Manager","Tuyển dụng Product Manager để lãnh đạo development của một sản phẩm chính. Bạn sẽ làm việc với design, engineering, và business teams.","- 3+ năm kinh nghiệm product management
+- Hiểu biết về product development lifecycle
+- Kỹ năng analytics
+- Kỹ năng communication tuyệt vời
+- Tiếng Anh tốt","Đà Nẵng","full-time","mid",20000000,32000000,"VND",true,"2024-12-28T23:59:59+00:00",56,"2024-11-18T16:00:00+00:00","2024-11-18T16:00:00+00:00"

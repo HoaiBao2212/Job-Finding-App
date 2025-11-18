@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Animated, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/theme';
 
-interface ApplicantSidebarLayoutProps {
+interface EmployerSidebarLayoutProps {
   children: React.ReactNode;
 }
 
@@ -15,12 +15,13 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { icon: 'view-dashboard', label: 'Dashboard', route: '/Applicant/Dashboard' },
-  { icon: 'briefcase-multiple', label: 'Tin tuyển dụng', route: '/Applicant/JobApplication' },
-  { icon: 'account-multiple', label: 'Người ứng tuyển', route: '/Applicant/CandidateApply' },
+  { icon: 'view-dashboard', label: 'Dashboard', route: '/Employer/Dashboard' },
+  { icon: 'briefcase-multiple', label: 'Tin tuyển dụng', route: '/Employer/JobApplication' },
+  { icon: 'account-multiple', label: 'Người ứng tuyển', route: '/Employer/CandidateApply' },
+  { icon: 'account-circle', label: 'Tài khoản', route: '/Employer/Account' },
 ];
 
-export default function ApplicantSidebarLayout({ children }: ApplicantSidebarLayoutProps) {
+export default function EmployerSidebarLayout({ children }: EmployerSidebarLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);

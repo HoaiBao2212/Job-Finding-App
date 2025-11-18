@@ -51,7 +51,7 @@ export default function Index() {
         <View style={{ width: "100%", gap: 12 }}>
           {/* Applicant Dashboard */}
           <TouchableOpacity
-            onPress={() => handleNavigate("/Applicant/Dashboard")}
+            onPress={() => handleNavigate("/Employer/Dashboard")}
             style={{
               paddingVertical: 16,
               paddingHorizontal: 20,

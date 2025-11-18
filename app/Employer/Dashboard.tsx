@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     FlatList,
     Image,
@@ -9,10 +9,13 @@ import {
     StatusBar,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { colors } from '../../constants/theme';
-import ApplicantSidebarLayout from '../Component/ApplicantSidebarLayout';
+import { authService } from '../../lib/services/authService';
+import { employerService } from '../../lib/services/employerService';
+import { jobService } from '../../lib/services/jobService';
+import EmployerSidebarLayout from '../Component/EmployerSidebarLayout';
 
 interface StatCard {
   id: string;
@@ -45,13 +48,54 @@ interface RecentApplication {
 export default function ApplicantDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'postings' | 'applications'>('overview');
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    totalApplied: 0,
+    totalViews: 0,
+  });
+  const [jobPostings, setJobPostings] = useState<any[]>([]);
+  const [employerId, setEmployerId] = useState<number | null>(null);
 
-  const stats: StatCard[] = [
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push('/(auth)/login');
+        return;
+      }
+
+      const employer = await employerService.getEmployerProfile(user.id);
+      if (employer?.id) {
+        setEmployerId(employer.id);
+        
+        // Lấy thống kê công việc
+        const jobStats = await employerService.getJobStats(employer.id);
+        setStats(jobStats);
+
+        // Lấy danh sách công việc
+        const jobs = await jobService.getEmployerJobs(employer.id);
+        setJobPostings(jobs.slice(0, 3)); // Lấy 3 công việc gần nhất
+      }
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const defaultStats: StatCard[] = [
     {
       id: '1',
       icon: 'briefcase',
       label: 'Tin tuyển dụng',
-      value: 12,
+      value: stats.total,
       color: colors.primary,
       bgColor: '#E7F5FF',
     },
@@ -59,7 +103,7 @@ export default function ApplicantDashboard() {
       id: '2',
       icon: 'file-document-multiple',
       label: 'Hồ sơ nhận được',
-      value: 48,
+      value: stats.totalApplied,
       color: '#52C41A',
       bgColor: '#F6FFED',
     },
@@ -67,7 +111,7 @@ export default function ApplicantDashboard() {
       id: '3',
       icon: 'eye',
       label: 'Lượt xem',
-      value: 1240,
+      value: stats.totalViews,
       color: '#FF7A45',
       bgColor: '#FFF7E6',
     },
@@ -75,13 +119,24 @@ export default function ApplicantDashboard() {
       id: '4',
       icon: 'trending-up',
       label: 'Tỷ lệ ứng tuyển',
-      value: 85,
+      value: stats.total > 0 ? Math.round((stats.totalApplied / stats.total) * 100) : 0,
       color: '#722ED1',
       bgColor: '#F9F0FF',
     },
   ];
 
-  const jobPostings: JobPosting[] = [
+  // Dữ liệu giả để hiển thị khi không có dữ liệu từ API
+  const displayJobPostings: JobPosting[] = jobPostings.slice(0, 3).map((job) => ({
+    id: job.id?.toString() || '',
+    title: job.title || '',
+    applications: 0,
+    views: job.view_count || 0,
+    status: job.is_active ? 'active' : 'closed',
+    postedDate: job.created_at ? new Date(job.created_at).toLocaleDateString('vi-VN') : '',
+    applicantsCv: 0,
+  }));
+
+  const displayJobPostingsDefault: JobPosting[] = [
     {
       id: '1',
       title: 'React Native Developer',
@@ -111,7 +166,7 @@ export default function ApplicantDashboard() {
     },
   ];
 
-  const recentApplications: RecentApplication[] = [
+  const displayRecentApplications: RecentApplication[] = [
     {
       id: '1',
       name: 'Nguyễn Văn A',
@@ -373,7 +428,7 @@ export default function ApplicantDashboard() {
   };
 
   return (
-    <ApplicantSidebarLayout>
+    <EmployerSidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
 
@@ -431,7 +486,7 @@ export default function ApplicantDashboard() {
         {/* Stats Section */}
         <View style={{ paddingHorizontal: 16, marginTop: -12, marginBottom: 20 }}>
           <FlatList
-            data={stats}
+            data={defaultStats}
             renderItem={({ item }) => <StatCard item={item} />}
             keyExtractor={(item) => item.id}
             horizontal
@@ -500,7 +555,7 @@ export default function ApplicantDashboard() {
                   Thao tác nhanh
                 </Text>
                 <TouchableOpacity
-                  onPress={() => router.push('/Applicant/JobApplication')}
+                    onPress={() => router.push('/Employer/JobApplication')}
                   style={{
                     backgroundColor: colors.primary,
                     borderRadius: 12,
@@ -549,7 +604,7 @@ export default function ApplicantDashboard() {
                     Ứng tuyển gần đây
                   </Text>
                   <TouchableOpacity
-                    onPress={() => router.push('/Applicant/JobApplication')}
+                    onPress={() => router.push('/Employer/JobApplication')}
                   >
                     <Text
                       style={{
@@ -562,7 +617,7 @@ export default function ApplicantDashboard() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {recentApplications.map((app) => (
+                {displayRecentApplications.map((app) => (
                   <ApplicationCard key={app.id} item={app} />
                 ))}
               </View>
@@ -589,7 +644,7 @@ export default function ApplicantDashboard() {
                   Tin tuyển dụng của bạn
                 </Text>
                 <TouchableOpacity
-                  onPress={() => router.push('/Applicant/JobApplication')}
+                  onPress={() => router.push('/Employer/JobApplication')}
                   style={{
                     backgroundColor: colors.primary,
                     paddingHorizontal: 12,
@@ -622,7 +677,7 @@ export default function ApplicantDashboard() {
               >
                 Tất cả ứng tuyển
               </Text>
-              {recentApplications.map((app) => (
+              {displayRecentApplications.map((app) => (
                 <ApplicationCard key={app.id} item={app} />
               ))}
             </View>
@@ -630,6 +685,6 @@ export default function ApplicantDashboard() {
         </View>
         </ScrollView>
       </SafeAreaView>
-    </ApplicantSidebarLayout>
+    </EmployerSidebarLayout>
   );
 }
