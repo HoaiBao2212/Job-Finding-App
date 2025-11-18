@@ -14,6 +14,7 @@ import { colors } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
 import { employerService } from "../../lib/services/employerService";
 import { jobService } from "../../lib/services/jobService";
+import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
 
 interface JobPosting {
@@ -83,36 +84,32 @@ export default function JobApplicationScreen() {
       const employer = await employerService.getEmployerProfile(user.id);
       if (employer?.id) {
         setEmployerId(employer.id);
-
-        // Kiểm tra xem công ty có thông tin đầy đủ chưa
-        if (!employer.company_id) {
-          // Nếu chưa có công ty, chuyển sang trang Companies
-          showAlert(
-            "Cập nhật thông tin công ty",
-            "Vui lòng cập nhật thông tin công ty trước khi đăng tin tuyển dụng",
-            [
-              {
-                text: "Hủy",
-                onPress: () => {
-                  setAlertVisible(false);
-                  router.back();
-                },
-              },
-              {
-                text: "Cập nhật",
-                onPress: () => {
-                  setAlertVisible(false);
-                  router.push("/Employer/Companies");
-                },
-              },
-            ]
-          );
-          setLoading(false);
-          return;
-        }
-
         const jobs = await jobService.getEmployerJobs(employer.id);
         setJobPostings(jobs);
+      } else {
+        // Nếu người dùng chưa có employer, hiển thị alert
+        showAlert(
+          "Tạo hồ sơ doanh nghiệp",
+          "Bạn chưa tạo hồ sơ doanh nghiệp. Vui lòng tạo hồ sơ để có thể đăng tin tuyển dụng",
+          [
+            {
+              text: "Hủy",
+              onPress: () => {
+                setAlertVisible(false);
+                router.back();
+              },
+            },
+            {
+              text: "OK",
+              onPress: () => {
+                setAlertVisible(false);
+                router.replace("/Employer/Companies");
+              },
+            },
+          ]
+        );
+        setLoading(false);
+        return;
       }
     } catch (error) {
       console.error("Error loading jobs:", error);
@@ -775,6 +772,17 @@ export default function JobApplicationScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        buttons={alertButtons}
+        onDismiss={() => {
+          setAlertVisible(false);
+          router.back();
+        }}
+      />
     </EmployerSidebarLayout>
   );
 }
