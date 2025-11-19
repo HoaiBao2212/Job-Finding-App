@@ -284,6 +284,7 @@ function DashboardContent() {
     const statusInfo = getStatusColor(item.status);
     return (
       <TouchableOpacity
+        onPress={() => router.push(`/Employer/JobDetail?jobId=${item.id}`)}
         style={{
           backgroundColor: colors.white,
           borderRadius: 12,
@@ -531,7 +532,7 @@ function DashboardContent() {
                     fontWeight: "500",
                   }}
                 >
-                  ABC Company
+                  Hôm nay bạn sẽ làm gì?
                 </Text>
               </View>
               <View
