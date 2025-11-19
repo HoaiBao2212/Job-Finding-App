@@ -103,7 +103,7 @@ export default function JobApplicationScreen() {
               text: "OK",
               onPress: () => {
                 setAlertVisible(false);
-                router.replace("/Employer/Companies");
+                  router.replace("/Employer/Companies");
               },
             },
           ]

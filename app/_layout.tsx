@@ -55,6 +55,9 @@ export default function RootLayout() {
       <Stack.Screen
         name="Employer/JobDetail"
         options={{ title: "Chi tiết công việc" }}
+      /><Stack.Screen
+        name="Employer/Companies"
+        options={{ title: "Chi tiết công ty" }}
       />
     </Stack>
   );

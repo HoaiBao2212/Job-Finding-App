@@ -72,7 +72,7 @@ export const jobService = {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select('*, companies(*), job_skills(*, skills(*)), job_tag_relations(*, job_tags(*))')
+        .select('*, companies(*)')
         .eq('id', id)
         .single();
 

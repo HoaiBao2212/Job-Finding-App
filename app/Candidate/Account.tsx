@@ -13,7 +13,9 @@ import {
   View
 } from 'react-native';
 import { colors } from '../../constants/theme';
+import AlertModal from "../Component/AlertModal";
 import SidebarLayout from '../Component/SidebarLayout';
+import { useAlert } from "../Component/useAlert";
 
 interface UserAccount {
   name: string;

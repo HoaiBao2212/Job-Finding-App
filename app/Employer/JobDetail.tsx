@@ -50,6 +50,8 @@ export default function EmployerJobDetailScreen() {
   useEffect(() => {
     if (jobId) {
       loadJobDetail();
+    } else {
+      setLoading(false);
     }
   }, [jobId]);
 
@@ -94,6 +96,42 @@ export default function EmployerJobDetailScreen() {
             style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
           >
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ marginTop: 12, color: colors.textGray }}>
+              Đang tải thông tin công việc...
+            </Text>
+          </View>
+        </SafeAreaView>
+      </EmployerSidebarLayout>
+    );
+  }
+
+  if (!jobId) {
+    return (
+      <EmployerSidebarLayout>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              paddingHorizontal: 16,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={48}
+              color={colors.textGray}
+            />
+            <Text
+              style={{
+                fontSize: 16,
+                color: colors.textDark,
+                marginTop: 12,
+                textAlign: "center",
+              }}
+            >
+              Không có ID công việc
+            </Text>
           </View>
         </SafeAreaView>
       </EmployerSidebarLayout>

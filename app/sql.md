@@ -61,7 +61,7 @@ CREATE TABLE public.companies (
   name text NOT NULL,
   logo_url text,
   industry text,
-  size text,
+  company_size text,
   location text,
   website text,
   description text,

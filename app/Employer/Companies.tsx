@@ -59,7 +59,7 @@ const VIETNAM_LOCATIONS = [
   "Kon Tum",
 ];
 
-const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
+const SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
 const INDUSTRIES = [
   "Công nghệ",
   "Tài chính",
@@ -321,11 +321,58 @@ export default function CompaniesScreen() {
     }
   };
 
+  const handleUploadLogoLocal = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showAlert("Quyền bị từ chối", "Vui lòng cấp quyền truy cập thư viện ảnh.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const imageUri = result.assets[0].uri;
+      setLoading(true);
+      showAlert("Đang xử lý", "Đang xử lý ảnh...", []);
+
+      try {
+        // Lưu URI ảnh đã chọn - URI này sẽ trỏ đến ảnh từ device
+        // Trên thiết bị thực, URI này có thể được lưu và sử dụng sau
+        // Hoặc upload lên Supabase
+        setLogoUrl(imageUri);
+        hideAlert();
+
+        showAlert("Thành công", "Logo đã được chọn từ thư viện ảnh", [
+          {
+            text: "OK",
+            style: "default",
+            onPress: () => hideAlert(),
+          },
+        ]);
+      } catch (processError) {
+        throw processError;
+      }
+    } catch (error: any) {
+      console.error("Error selecting logo:", error);
+      hideAlert();
+      showAlert("Lỗi", error?.message || "Không thể chọn ảnh. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUploadLogo = () => {
     if (Platform.OS === "web") {
       fileInputRef.current?.click();
     } else {
-      handleUploadLogoMobile();
+      handleUploadLogoLocal();
     }
   };
 
@@ -506,15 +553,21 @@ export default function CompaniesScreen() {
                 alignItems: "center" as const,
                 justifyContent: "center" as const,
                 flexDirection: "row" as const,
+                opacity: uploading ? 0.6 : 1,
               }}
               onPress={handleUploadLogo}
+              disabled={uploading}
             >
-              <MaterialCommunityIcons
-                name="cloud-upload"
-                size={20}
-                color={colors.white}
-                style={{ marginRight: 8 }}
-              />
+              {uploading ? (
+                <ActivityIndicator color={colors.white} style={{ marginRight: 8 }} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="cloud-upload"
+                  size={20}
+                  color={colors.white}
+                  style={{ marginRight: 8 }}
+                />
+              )}
               <Text
                 style={{
                   color: colors.white,
@@ -523,7 +576,7 @@ export default function CompaniesScreen() {
                   fontFamily: Fonts.sans,
                 }}
               >
-                Upload Logo
+                {uploading ? "Đang lưu..." : "Upload Logo"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -567,7 +620,7 @@ export default function CompaniesScreen() {
                   onValueChange={(value) => setCompanySize(value)}
                 >
                   <Picker.Item label="Chọn quy mô" value="" />
-                  {COMPANY_SIZES.map((item) => (
+                  {SIZES.map((item) => (
                     <Picker.Item key={item} label={item} value={item} />
                   ))}
                 </Picker>
