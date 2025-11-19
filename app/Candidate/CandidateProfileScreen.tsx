@@ -32,9 +32,9 @@ export default function CandidateProfileScreen() {
             style={styles.avatar}
           />
           <View style={{ alignItems: "center", marginTop: 12 }}>
-            <Text style={styles.name}>Phan Hoài Bão</Text>
+            <Text style={styles.name}>Nguyễn Văn A</Text>
             <Text style={styles.title}>React Native Developer</Text>
-            <Text style={styles.location}>Đà Nẵng, Việt Nam</Text>
+            <Text style={styles.location}>📍 Hồ Chí Minh, Việt Nam</Text>
           </View>
         </View>
 
@@ -59,22 +59,22 @@ export default function CandidateProfileScreen() {
         <Text style={styles.cardTitle}>Thông tin liên hệ</Text>
         <View style={styles.itemRow}>
           <Text style={styles.itemLabel}>Email</Text>
-          <Text style={styles.itemValue}>bao@gmail.com</Text>
+          <Text style={styles.itemValue}>nguyenvana@example.com</Text>
         </View>
         <View style={styles.itemRow}>
           <Text style={styles.itemLabel}>Số điện thoại</Text>
-          <Text style={styles.itemValue}>123456789</Text>
+          <Text style={styles.itemValue}>+84 912 345 678</Text>
         </View>
         <View style={styles.itemRow}>
           <Text style={styles.itemLabel}>LinkedIn</Text>
           <Text style={[styles.itemValue, styles.link]}>
-            linkedin.com/in/bao
+            linkedin.com/in/nguyenvana
           </Text>
         </View>
         <View style={styles.itemRow}>
           <Text style={styles.itemLabel}>GitHub</Text>
           <Text style={[styles.itemValue, styles.link]}>
-            github.com/bao
+            github.com/nguyenvana
           </Text>
         </View>
       </View>
