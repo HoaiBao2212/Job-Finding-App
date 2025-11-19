@@ -21,6 +21,11 @@ interface JobPosting {
   id: string;
   title: string;
   company?: string;
+  company_id?: number;
+  companies?: {
+    id: number;
+    name: string;
+  };
   location: string;
   salary?: string;
   applications?: number;
@@ -292,7 +297,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.company || "Công ty"} • {item.location || "Địa điểm"}
+              {item.companies?.name || item.company || "Công ty"} • {item.location || "Địa điểm"}
             </Text>
           </View>
           <View

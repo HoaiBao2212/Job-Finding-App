@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -11,7 +11,8 @@ import {
     View,
 } from "react-native";
 import { colors } from "../../constants/theme";
-import { companyService } from "../../lib/services/companyService";
+import { authService } from "../../lib/services/authService";
+import { employerService } from "../../lib/services/employerService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
 import { useAlert } from "../Component/useAlert";
@@ -30,10 +31,6 @@ interface CompanyDetailInfo {
 
 export default function CompanyDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const companyId = params.companyId
-    ? parseInt(params.companyId as string)
-    : null;
 
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<CompanyDetailInfo | null>(null);
@@ -41,28 +38,37 @@ export default function CompanyDetailScreen() {
   const { alertState, showAlert } = useAlert();
 
   useEffect(() => {
-    if (companyId && !isNaN(companyId)) {
-      loadCompanyDetail();
-    } else {
-      setLoading(false);
-    }
-  }, [companyId]);
+    loadCompanyDetail();
+  }, []);
 
   const loadCompanyDetail = async () => {
     try {
       setLoading(true);
-      const companyData = await companyService.getCompanyById(companyId!);
-      setCompany(companyData);
+      // Lấy user hiện tại
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Lấy employer profile của user (bao gồm thông tin company)
+      const employer = await employerService.getEmployerProfile(user.id);
+      if (!employer || !employer.companies) {
+        showAlert("Lỗi", "Không tìm thấy thông tin công ty của bạn");
+        setLoading(false);
+        return;
+      }
+
+      setCompany(employer.companies);
 
       // Lấy số lượng công việc của công ty này
       try {
-        // Truy vấn để đếm số jobs cho công ty này
         const jobsResponse = await (
           await import("../../lib/supabase")
         ).supabase
           .from("jobs")
           .select("id")
-          .eq("company_id", companyId!);
+          .eq("company_id", employer.company_id);
 
         if (jobsResponse.data) {
           setJobCount(jobsResponse.data.length);
@@ -213,7 +219,7 @@ export default function CompanyDetailScreen() {
                 {company.name}
               </Text>
               <TouchableOpacity
-                onPress={() => router.push(`/Employer/CompanyEditing?companyId=${company.id}`)}
+              onPress={()=>router.push(`/Employer/CompanyEditing?companyId=${company.id}`)}
                 style={{
                   width: 50,
                   height: 50,
