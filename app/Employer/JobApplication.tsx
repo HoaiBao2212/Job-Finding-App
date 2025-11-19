@@ -72,6 +72,44 @@ export default function JobApplicationScreen() {
     setAlertVisible(true);
   };
 
+  const handleDeleteJob = (jobId: string | number) => {
+    showAlert(
+      "Xóa công việc",
+      "Bạn có chắc muốn xóa công việc này? Hành động này không thể hoàn tác.",
+      [
+        {
+          text: "Xóa",
+          onPress: () => {
+            setAlertVisible(false);
+            deleteJobConfirmed(jobId);
+          },
+        },
+        {
+          text: "Hủy",
+          onPress: () => setAlertVisible(false),
+        },
+      ]
+    );
+  };
+
+  const deleteJobConfirmed = async (jobId: string | number) => {
+    try {
+      const jobIdNum = typeof jobId === "string" ? parseInt(jobId) : jobId;
+      await jobService.deleteJob(jobIdNum);
+      // Cập nhật danh sách công việc
+      setJobPostings(jobPostings.filter((job) => job.id !== jobIdNum));
+      showAlert("Thành công", "Xóa công việc thành công", [
+        {
+          text: "OK",
+          onPress: () => setAlertVisible(false),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      showAlert("Lỗi", "Không thể xóa công việc");
+    }
+  };
+
   useEffect(() => {
     loadJobs();
   }, []);
@@ -467,6 +505,7 @@ export default function JobApplicationScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => handleDeleteJob(item.id)}
             style={{
               paddingVertical: 10,
               paddingHorizontal: 12,
