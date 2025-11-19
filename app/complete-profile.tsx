@@ -1,3 +1,5 @@
+import AlertModal from "@/app/Component/AlertModal";
+import { useAlert } from "@/app/Component/useAlert";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
@@ -5,7 +7,6 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -61,6 +62,7 @@ export default function CompleteProfileScreen() {
   const [location, setLocation] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -72,7 +74,7 @@ export default function CompleteProfileScreen() {
 
         if (userError) throw userError;
         if (!user) {
-          Alert.alert("Thông báo", "Phiên đăng nhập đã hết hạn.");
+          showAlert("Thông báo", "Phiên đăng nhập đã hết hạn.");
           router.replace("/(auth)/login");
           return;
         }
@@ -99,7 +101,7 @@ export default function CompleteProfileScreen() {
         }
       } catch (err: any) {
         console.error(err);
-        Alert.alert(
+        showAlert(
           "Lỗi",
           err?.message || "Không tải được thông tin hồ sơ, vui lòng thử lại."
         );
@@ -113,7 +115,7 @@ export default function CompleteProfileScreen() {
 
   const handleSave = async () => {
     if (!fullName || !location || !role) {
-      Alert.alert(
+      showAlert(
         "Thiếu thông tin",
         "Vui lòng nhập họ tên, chọn vai trò và tỉnh/thành phố."
       );
@@ -130,7 +132,7 @@ export default function CompleteProfileScreen() {
 
       if (userError) throw userError;
       if (!user) {
-        Alert.alert("Thông báo", "Phiên đăng nhập đã hết hạn.");
+        showAlert("Thông báo", "Phiên đăng nhập đã hết hạn.");
         router.replace("/(auth)/login");
         return;
       }
@@ -152,76 +154,10 @@ export default function CompleteProfileScreen() {
 
       if (profileError) throw profileError;
 
-      // Nếu là candidate, tạo/update candidate_profiles record
-      if (role === "candidate") {
-        const { data: candidateProfile, error: fetchError } = await supabase
-          .from("candidate_profiles")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-
-        if (fetchError && fetchError.code !== "PGRST116") {
-          throw fetchError;
-        }
-
-        if (!candidateProfile) {
-          const { error: candidateInsertError } = await supabase
-            .from("candidate_profiles")
-            .insert({
-              user_id: user.id,
-              preferred_locations: location,
-            });
-
-          if (candidateInsertError) throw candidateInsertError;
-        } else {
-          const { error: candidateUpdateError } = await supabase
-            .from("candidate_profiles")
-            .update({ preferred_locations: location })
-            .eq("user_id", user.id);
-
-          if (candidateUpdateError) throw candidateUpdateError;
-        }
-      }
-
-      // Nếu là employer, tạo/update employers record
-      if (role === "employer") {
-        const { data: employer, error: fetchError } = await supabase
-          .from("employers")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-
-        if (fetchError && fetchError.code !== "PGRST116") {
-          throw fetchError;
-        }
-
-        if (!employer) {
-          // Tạo một company mặc định trước khi tạo employer
-          const { data: company, error: companyError } = await supabase
-            .from("companies")
-            .insert({
-              name: "Chưa cập nhập công ty",
-              location: location,
-            })
-            .select()
-            .single();
-
-          if (companyError) throw companyError;
-
-          const { error: employerInsertError } = await supabase
-            .from("employers")
-            .insert({
-              user_id: user.id,
-              company_id: company.id,
-            });
-
-          if (employerInsertError) throw employerInsertError;
-        }
-      }
-
-      Alert.alert("Thành công", "Đã lưu thông tin hồ sơ của bạn.", [
+      showAlert("Thành công", "Đã lưu thông tin hồ sơ của bạn.", [
         {
           text: "OK",
+          style: "default",
           onPress: () => {
             // Điều hướng dựa trên role
             if (role === "employer") {
@@ -234,7 +170,7 @@ export default function CompleteProfileScreen() {
       ]);
     } catch (err: any) {
       console.error(err);
-      Alert.alert("Lỗi", err?.message || "Không thể lưu thông tin, thử lại.");
+      showAlert("Lỗi", err?.message || "Không thể lưu thông tin, thử lại.");
     } finally {
       setSaving(false);
     }
@@ -381,6 +317,15 @@ export default function CompleteProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }
