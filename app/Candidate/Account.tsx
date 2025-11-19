@@ -2,15 +2,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { colors } from '../../constants/theme';
 import SidebarLayout from '../Component/SidebarLayout';
@@ -27,9 +27,9 @@ interface UserAccount {
 export default function AccountScreen() {
   const router = useRouter();
   const [user, setUser] = React.useState<UserAccount>({
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '+84 912 345 678',
+    name: 'Phan Hoài Bão',
+    email: 'bao@gmail.com',
+    phone: '123456789',
     avatar: 'https://i.pravatar.cc/150?img=32',
     joinDate: '15/01/2024',
     verificationStatus: 'verified',

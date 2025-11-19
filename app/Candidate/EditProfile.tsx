@@ -2,15 +2,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { colors } from '../../constants/theme';
 import SidebarLayout from '../Component/SidebarLayout';
@@ -31,9 +31,9 @@ interface ProfileData {
 export default function EditProfileScreen() {
   const router = useRouter();
   const [profile, setProfile] = React.useState<ProfileData>({
-    fullName: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '+84 912 345 678',
+    fullName: 'Phan Hoài Bão',
+    email: 'bao@gmail.com',
+    phone: '123456789',
     jobTitle: 'React Native Developer',
     location: 'TP. Hồ Chí Minh, Việt Nam',
     bio: 'Lập trình viên React Native với hơn 3 năm kinh nghiệm xây dựng ứng dụng mobile đa nền tảng.',
