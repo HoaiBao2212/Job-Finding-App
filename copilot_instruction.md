@@ -43,7 +43,7 @@ Create a cross-platform job search application (Android/iOS) using
 
 -   Should run after `npm install`
 
--   Firestore structure:
+-   Supabase structure:
 
         /users
         /jobs

@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import {
+  ActivityIndicator,
   Image,
   SafeAreaView,
   ScrollView,
@@ -10,39 +10,36 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { colors } from '../../constants/theme';
+  View,
+} from "react-native";
+import { colors } from "../../constants/theme";
+import { authService } from "../../lib/services/authService";
+import { employerService } from "../../lib/services/employerService";
 import AlertModal from "../Component/AlertModal";
-import SidebarLayout from '../Component/SidebarLayout';
+import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
 import { useAlert } from "../Component/useAlert";
 
-interface UserAccount {
-  name: string;
+interface EmployerAccount {
+  fullName: string;
   email: string;
   phone: string;
-  avatar: string;
+  avatarUrl: string;
   joinDate: string;
   verificationStatus: "verified" | "unverified";
+  companyName?: string;
 }
 
-export default function AccountScreen() {
+export default function ApplicantAccountScreen() {
   const router = useRouter();
+  const [loading, setLoading] = React.useState(true);
+  const [user, setUser] = React.useState<EmployerAccount | null>(null);
   const { alertState, showAlert, hideAlert } = useAlert();
-  const [user, setUser] = React.useState<UserAccount>({
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '+84 912 345 678',
-    avatar: 'https://i.pravatar.cc/150?img=32',
-    joinDate: '15/01/2024',
-    verificationStatus: 'verified',
-  });
 
   const [notifications, setNotifications] = React.useState({
     email: true,
     sms: false,
-    jobAlerts: true,
     applicationUpdates: true,
+    candidateMessages: true,
   });
 
   const [privacy, setPrivacy] = React.useState({
@@ -50,33 +47,57 @@ export default function AccountScreen() {
     showOnlineStatus: true,
   });
 
+  React.useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const currentUser = await authService.getCurrentUser();
+      if (!currentUser) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      const employer = await employerService.getEmployerProfile(currentUser.id);
+      const profile = currentUser.user_metadata || {};
+
+      // Format join date
+      const joinDate = new Date(currentUser.created_at || new Date());
+      const formattedDate = joinDate.toLocaleDateString("vi-VN");
+
+      setUser({
+        fullName: profile.full_name || "Nhà tuyển dụng",
+        email: currentUser.email || "",
+        phone: profile.phone || "",
+        avatarUrl: profile.avatar_url || "https://i.pravatar.cc/150?img=32",
+        joinDate: formattedDate,
+        verificationStatus: currentUser.email_confirmed_at
+          ? "verified"
+          : "unverified",
+        companyName: employer?.company?.name || "Chưa cập nhật",
+      });
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      showAlert("Lỗi", "Không thể tải thông tin người dùng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
-    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-        onPress: () => hideAlert(),
-      },
+    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
+      { text: "Hủy", style: "cancel", onPress: () => hideAlert() },
       {
         text: "Đăng xuất",
         style: "destructive",
         onPress: async () => {
           try {
-            // 1. Thực hiện đăng xuất Supabase
-            const { error } = await supabase.auth.signOut();
-
-            if (error) {
-              showAlert("Lỗi", error.message);
-              return;
-            }
-
-            // 2. Chuyển về màn login
-            router.replace("/(auth)/login");
-          } catch (err: any) {
-            showAlert(
-              "Lỗi",
-              err?.message || "Không thể đăng xuất. Hãy thử lại."
-            );
+            await authService.signOut();
+            router.push("/(auth)/login");
+          } catch (error) {
+            showAlert("Lỗi", "Có lỗi khi đăng xuất");
           }
         },
       },
@@ -238,8 +259,38 @@ export default function AccountScreen() {
     </View>
   );
 
+  if (loading) {
+    return (
+      <EmployerSidebarLayout>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      </EmployerSidebarLayout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <EmployerSidebarLayout>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <Text style={{ color: colors.textDark }}>
+              Không thể tải dữ liệu
+            </Text>
+          </View>
+        </SafeAreaView>
+      </EmployerSidebarLayout>
+    );
+  }
+
   return (
-    <SidebarLayout>
+    <EmployerSidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
 
@@ -259,7 +310,7 @@ export default function AccountScreen() {
           >
             <View style={{ alignItems: "center", marginBottom: 16 }}>
               <Image
-                source={{ uri: user.avatar }}
+                source={{ uri: user.avatarUrl }}
                 style={{
                   width: 80,
                   height: 80,
@@ -277,7 +328,16 @@ export default function AccountScreen() {
                   marginBottom: 4,
                 }}
               >
-                {user.name}
+                {user.fullName}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: colors.textGray,
+                  marginBottom: 12,
+                }}
+              >
+                {user.companyName}
               </Text>
               <View
                 style={{
@@ -324,6 +384,7 @@ export default function AccountScreen() {
             </View>
 
             <TouchableOpacity
+              onPress={() => router.push("/Employer/EditProfile" as any)}
               style={{
                 backgroundColor: colors.primarySoftBg,
                 paddingVertical: 10,
@@ -346,36 +407,6 @@ export default function AccountScreen() {
           {/* Account Information */}
           <View style={{ paddingHorizontal: 16 }}>
             <SectionTitle title="Thông tin tài khoản" />
-
-            {/* Edit Profile Button */}
-            <TouchableOpacity
-              onPress={() => router.push("/Candidate/EditProfile")}
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 12,
-                paddingVertical: 14,
-                alignItems: "center",
-                marginBottom: 16,
-                flexDirection: "row",
-                justifyContent: "center",
-              }}
-            >
-              <MaterialCommunityIcons
-                name="pencil"
-                size={18}
-                color={colors.white}
-                style={{ marginRight: 8 }}
-              />
-              <Text
-                style={{
-                  color: colors.white,
-                  fontSize: 14,
-                  fontWeight: "600",
-                }}
-              >
-                Chỉnh sửa hồ sơ
-              </Text>
-            </TouchableOpacity>
 
             <View
               style={{
@@ -455,7 +486,7 @@ export default function AccountScreen() {
                       color: colors.textDark,
                     }}
                   >
-                    {user.phone}
+                    {user.phone || "Chưa cập nhật"}
                   </Text>
                 </View>
               </View>
@@ -532,24 +563,24 @@ export default function AccountScreen() {
                 }
               />
               <NotificationToggle
-                icon="briefcase-outline"
-                title="Cảnh báo công việc"
-                value={notifications.jobAlerts}
-                onToggle={() =>
-                  setNotifications({
-                    ...notifications,
-                    jobAlerts: !notifications.jobAlerts,
-                  })
-                }
-              />
-              <NotificationToggle
-                icon="file-check-outline"
+                icon="file-document-outline"
                 title="Cập nhật đơn ứng tuyển"
                 value={notifications.applicationUpdates}
                 onToggle={() =>
                   setNotifications({
                     ...notifications,
                     applicationUpdates: !notifications.applicationUpdates,
+                  })
+                }
+              />
+              <NotificationToggle
+                icon="chat-outline"
+                title="Tin nhắn từ ứng viên"
+                value={notifications.candidateMessages}
+                onToggle={() =>
+                  setNotifications({
+                    ...notifications,
+                    candidateMessages: !notifications.candidateMessages,
                   })
                 }
               />
@@ -727,6 +758,6 @@ export default function AccountScreen() {
           onDismiss={hideAlert}
         />
       </SafeAreaView>
-    </SidebarLayout>
+    </EmployerSidebarLayout>
   );
 }

@@ -1,3 +1,5 @@
+import AlertModal from "@/app/Component/AlertModal";
+import { useAlert } from "@/app/Component/useAlert";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
@@ -5,7 +7,6 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -61,6 +62,7 @@ export default function CompleteProfileScreen() {
   const [location, setLocation] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -72,7 +74,7 @@ export default function CompleteProfileScreen() {
 
         if (userError) throw userError;
         if (!user) {
-          Alert.alert("Thông báo", "Phiên đăng nhập đã hết hạn.");
+          showAlert("Thông báo", "Phiên đăng nhập đã hết hạn.");
           router.replace("/(auth)/login");
           return;
         }
@@ -99,7 +101,7 @@ export default function CompleteProfileScreen() {
         }
       } catch (err: any) {
         console.error(err);
-        Alert.alert(
+        showAlert(
           "Lỗi",
           err?.message || "Không tải được thông tin hồ sơ, vui lòng thử lại."
         );
@@ -113,7 +115,7 @@ export default function CompleteProfileScreen() {
 
   const handleSave = async () => {
     if (!fullName || !location || !role) {
-      Alert.alert(
+      showAlert(
         "Thiếu thông tin",
         "Vui lòng nhập họ tên, chọn vai trò và tỉnh/thành phố."
       );
@@ -130,12 +132,13 @@ export default function CompleteProfileScreen() {
 
       if (userError) throw userError;
       if (!user) {
-        Alert.alert("Thông báo", "Phiên đăng nhập đã hết hạn.");
+        showAlert("Thông báo", "Phiên đăng nhập đã hết hạn.");
         router.replace("/(auth)/login");
         return;
       }
 
-      const { error } = await supabase.from("profiles").upsert(
+      // Cập nhập profiles table
+      const { error: profileError } = await supabase.from("profiles").upsert(
         {
           id: user.id,
           full_name: fullName,
@@ -144,24 +147,30 @@ export default function CompleteProfileScreen() {
           avatar_url: avatarUrl,
           role,
           location,
+          updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
       );
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      Alert.alert("Thành công", "Đã lưu thông tin hồ sơ của bạn.", [
+      showAlert("Thành công", "Đã lưu thông tin hồ sơ của bạn.", [
         {
           text: "OK",
+          style: "default",
           onPress: () => {
-            // Sau khi lưu có thể điều hướng:
-            // router.replace("/Candidate/LoginScreen");
+            // Điều hướng dựa trên role
+            if (role === "employer") {
+              router.replace("/Employer/Dashboard");
+            } else if (role === "candidate") {
+              router.replace("/Candidate/JobFinding");
+            }
           },
         },
       ]);
     } catch (err: any) {
       console.error(err);
-      Alert.alert("Lỗi", err?.message || "Không thể lưu thông tin, thử lại.");
+      showAlert("Lỗi", err?.message || "Không thể lưu thông tin, thử lại.");
     } finally {
       setSaving(false);
     }
@@ -308,6 +317,15 @@ export default function CompleteProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }

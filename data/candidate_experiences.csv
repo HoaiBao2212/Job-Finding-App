@@ -1,0 +1,4 @@
+id,candidate_id,company_name,position,start_date,end_date,is_current,description,created_at,updated_at
+1,1,Tech Company,React Developer,2022-01-15,2024-08-30,false,Phát triển ứng dụng mobile với React Native,2024-11-18T10:00:00+00:00,2024-11-18T10:00:00+00:00
+2,1,Startup XYZ,Senior Developer,2024-09-01,,true,Dẫn dắt team developer và xây dựng kiến trúc ứng dụng,2024-11-18T10:00:00+00:00,2024-11-18T10:00:00+00:00
+3,2,Design Agency,UI Designer,2023-03-01,2024-10-30,false,Thiết kế UI/UX cho các dự án web và mobile,2024-11-18T10:00:00+00:00,2024-11-18T10:00:00+00:00

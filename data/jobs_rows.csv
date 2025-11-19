@@ -1,0 +1,2 @@
+id,company_id,created_by_employer_id,title,description,requirements,location,job_type,experience_level,salary_min,salary_max,salary_currency,is_active,deadline,view_count,created_at,updated_at
+2,7,30,asd,asd,asd,asd,full-time,mid,1000,2000,VND,true,2026-11-11 23:59:59+00,0,2025-11-19 05:06:25.068678+00,2025-11-19 05:06:25.068678+00

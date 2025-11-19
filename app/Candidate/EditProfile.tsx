@@ -1,19 +1,20 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import * as React from 'react';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as React from "react";
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { colors } from '../../constants/theme';
+import AlertModal from "../Component/AlertModal";
 import SidebarLayout from '../Component/SidebarLayout';
+import { useAlert } from "../Component/useAlert";
 
 interface ProfileData {
   fullName: string;
@@ -30,6 +31,7 @@ interface ProfileData {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { alertState, showAlert, hideAlert } = useAlert();
   const [profile, setProfile] = React.useState<ProfileData>({
     fullName: 'Nguyễn Văn A',
     email: 'nguyenvana@example.com',
@@ -47,7 +49,7 @@ export default function EditProfileScreen() {
 
   const handleSave = () => {
     if (!profile.fullName.trim() || !profile.email.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng điền tên và email');
+      showAlert("Lỗi", "Vui lòng điền tên và email");
       return;
     }
 
@@ -55,8 +57,16 @@ export default function EditProfileScreen() {
     // Simulate saving
     setTimeout(() => {
       setIsSaving(false);
-      Alert.alert('Thành công', 'Hồ sơ đã được cập nhập');
-      router.back();
+      showAlert("Thành công", "Hồ sơ đã được cập nhập", [
+        {
+          text: "OK",
+          style: "default",
+          onPress: () => {
+            hideAlert();
+            router.back();
+          },
+        },
+      ]);
     }, 1500);
   };
 
@@ -78,7 +88,9 @@ export default function EditProfileScreen() {
     icon: string;
   }) => (
     <View style={{ marginBottom: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+      >
         <MaterialCommunityIcons
           name={icon as any}
           size={16}
@@ -88,7 +100,7 @@ export default function EditProfileScreen() {
         <Text
           style={{
             fontSize: 13,
-            fontWeight: '600',
+            fontWeight: "600",
             color: colors.textDark,
           }}
         >
@@ -111,7 +123,7 @@ export default function EditProfileScreen() {
           paddingVertical: multiline ? 12 : 10,
           fontSize: 14,
           color: colors.textDark,
-          fontFamily: 'System',
+          fontFamily: "System",
         }}
       />
     </View>
@@ -121,7 +133,7 @@ export default function EditProfileScreen() {
     <Text
       style={{
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: "700",
         color: colors.textDark,
         marginBottom: 12,
         marginTop: 24,
@@ -139,9 +151,9 @@ export default function EditProfileScreen() {
         {/* Header */}
         <View
           style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
             paddingHorizontal: 16,
             paddingVertical: 12,
             backgroundColor: colors.white,
@@ -156,7 +168,9 @@ export default function EditProfileScreen() {
               color={colors.primary}
             />
           </TouchableOpacity>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textDark }}>
+          <Text
+            style={{ fontSize: 18, fontWeight: "600", color: colors.textDark }}
+          >
             Chỉnh sửa hồ sơ
           </Text>
           <View style={{ width: 28 }} />
@@ -169,7 +183,7 @@ export default function EditProfileScreen() {
           {/* Avatar Section */}
           <View
             style={{
-              alignItems: 'center',
+              alignItems: "center",
               marginBottom: 24,
               paddingBottom: 20,
               borderBottomWidth: 1,
@@ -195,7 +209,7 @@ export default function EditProfileScreen() {
                 borderRadius: 6,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <MaterialCommunityIcons
                   name="camera"
                   size={16}
@@ -205,7 +219,7 @@ export default function EditProfileScreen() {
                 <Text
                   style={{
                     color: colors.white,
-                    fontWeight: '600',
+                    fontWeight: "600",
                     fontSize: 13,
                   }}
                 >
@@ -221,9 +235,7 @@ export default function EditProfileScreen() {
           <InputField
             label="Họ và tên"
             value={profile.fullName}
-            onChangeText={(text) =>
-              setProfile({ ...profile, fullName: text })
-            }
+            onChangeText={(text) => setProfile({ ...profile, fullName: text })}
             placeholder="Nhập họ và tên"
             icon="account"
           />
@@ -247,9 +259,7 @@ export default function EditProfileScreen() {
           <InputField
             label="Vị trí công việc"
             value={profile.jobTitle}
-            onChangeText={(text) =>
-              setProfile({ ...profile, jobTitle: text })
-            }
+            onChangeText={(text) => setProfile({ ...profile, jobTitle: text })}
             placeholder="Nhập vị trí công việc"
             icon="briefcase"
           />
@@ -257,9 +267,7 @@ export default function EditProfileScreen() {
           <InputField
             label="Địa điểm"
             value={profile.location}
-            onChangeText={(text) =>
-              setProfile({ ...profile, location: text })
-            }
+            onChangeText={(text) => setProfile({ ...profile, location: text })}
             placeholder="Nhập địa điểm"
             icon="map-marker"
           />
@@ -290,9 +298,7 @@ export default function EditProfileScreen() {
           <InputField
             label="Học vấn"
             value={profile.education}
-            onChangeText={(text) =>
-              setProfile({ ...profile, education: text })
-            }
+            onChangeText={(text) => setProfile({ ...profile, education: text })}
             placeholder="Nhập học vấn"
             icon="school"
           />
@@ -300,9 +306,7 @@ export default function EditProfileScreen() {
           <InputField
             label="Kỹ năng"
             value={profile.skills}
-            onChangeText={(text) =>
-              setProfile({ ...profile, skills: text })
-            }
+            onChangeText={(text) => setProfile({ ...profile, skills: text })}
             placeholder="Nhập kỹ năng (cách nhau bằng dấu phẩy)"
             icon="star"
             multiline
@@ -312,7 +316,7 @@ export default function EditProfileScreen() {
           {/* Action Buttons */}
           <View
             style={{
-              flexDirection: 'row',
+              flexDirection: "row",
               gap: 12,
               marginTop: 24,
               marginBottom: 32,
@@ -326,13 +330,13 @@ export default function EditProfileScreen() {
                 borderRadius: 8,
                 borderWidth: 2,
                 borderColor: colors.primary,
-                alignItems: 'center',
+                alignItems: "center",
               }}
             >
               <Text
                 style={{
                   fontSize: 14,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: colors.primary,
                 }}
               >
@@ -348,12 +352,12 @@ export default function EditProfileScreen() {
                 paddingVertical: 14,
                 borderRadius: 8,
                 backgroundColor: colors.primary,
-                alignItems: 'center',
+                alignItems: "center",
                 opacity: isSaving ? 0.6 : 1,
               }}
             >
               {isSaving ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <MaterialCommunityIcons
                     name="loading"
                     size={16}
@@ -363,7 +367,7 @@ export default function EditProfileScreen() {
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '600',
+                      fontWeight: "600",
                       color: colors.white,
                     }}
                   >
@@ -374,7 +378,7 @@ export default function EditProfileScreen() {
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '600',
+                    fontWeight: "600",
                     color: colors.white,
                   }}
                 >
@@ -384,6 +388,15 @@ export default function EditProfileScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Alert Modal */}
+        <AlertModal
+          visible={alertState.visible}
+          title={alertState.title}
+          message={alertState.message}
+          buttons={alertState.buttons}
+          onDismiss={hideAlert}
+        />
       </SafeAreaView>
     </SidebarLayout>
   );

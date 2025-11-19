@@ -1,10 +1,11 @@
+import AlertModal from "@/app/Component/AlertModal";
+import { useAlert } from "@/app/Component/useAlert";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -18,18 +19,19 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   const handleChangePassword = async () => {
     if (!password || !confirm) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập đầy đủ mật khẩu.");
+      showAlert("Thiếu thông tin", "Vui lòng nhập đầy đủ mật khẩu.");
       return;
     }
     if (password !== confirm) {
-      Alert.alert("Không khớp", "Mật khẩu và xác nhận không trùng nhau.");
+      showAlert("Không khớp", "Mật khẩu và xác nhận không trùng nhau.");
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Mật khẩu yếu", "Mật khẩu phải tối thiểu 6 ký tự.");
+      showAlert("Mật khẩu yếu", "Mật khẩu phải tối thiểu 6 ký tự.");
       return;
     }
 
@@ -41,18 +43,22 @@ export default function ResetPasswordScreen() {
       });
 
       if (error) {
-        Alert.alert("Đổi mật khẩu thất bại", error.message);
+        showAlert("Đổi mật khẩu thất bại", error.message);
         return;
       }
 
-      Alert.alert("Thành công", "Mật khẩu đã được thay đổi.", [
+      showAlert("Thành công", "Mật khẩu đã được thay đổi.", [
         {
           text: "OK",
-          onPress: () => router.replace("/(auth)/login"),
+          style: "default",
+          onPress: () => {
+            hideAlert();
+            router.replace("/(auth)/login");
+          },
         },
       ]);
     } catch (err: any) {
-      Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại.");
+      showAlert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -118,6 +124,15 @@ export default function ResetPasswordScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }

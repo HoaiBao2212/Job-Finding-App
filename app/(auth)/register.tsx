@@ -1,10 +1,11 @@
+import AlertModal from "@/app/Component/AlertModal";
+import { useAlert } from "@/app/Component/useAlert";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -19,20 +20,21 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập đầy đủ các trường");
+      showAlert("Thiếu thông tin", "Vui lòng nhập đầy đủ các trường");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Mật khẩu yếu", "Mật khẩu phải có ít nhất 6 ký tự");
+      showAlert("Mật khẩu yếu", "Mật khẩu phải có ít nhất 6 ký tự");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Không khớp", "Mật khẩu và xác nhận mật khẩu không trùng");
+      showAlert("Không khớp", "Mật khẩu và xác nhận mật khẩu không trùng");
       return;
     }
 
@@ -51,22 +53,31 @@ export default function RegisterScreen() {
       });
 
       if (error) {
-        Alert.alert("Đăng ký thất bại", error.message);
+        showAlert("Đăng ký thất bại", error.message);
         return;
       }
 
       // Tuỳ config Supabase:
       // - Nếu bật email confirmation: user phải vào mail để xác nhận
       // - Nếu tắt: có thể login luôn
-      Alert.alert(
+      showAlert(
         "Thành công",
-        "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản."
+        "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.",
+        [
+          {
+            text: "OK",
+            style: "default",
+            onPress: () => {
+              hideAlert();
+              router.replace("/(auth)/login");
+            },
+          },
+        ]
       );
 
       // Điều hướng về màn đăng nhập
-      router.replace("/(auth)/login");
     } catch (err: any) {
-      Alert.alert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
+      showAlert("Lỗi", err?.message || "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -156,6 +167,15 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SafeAreaView>
   );
 }
