@@ -1,5 +1,6 @@
 import { authService } from "@/lib/services/authService";
 import { supabase } from "@/lib/supabase";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -7,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
@@ -199,6 +201,51 @@ export default function CandidateProfileScreen() {
   return (
     <SidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+
+        {/* Header with Back Button */}
+        <View
+          style={{
+            backgroundColor: colors.primary,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.push("/Candidate/JobFinding")}
+            style={{
+              width: 44,
+              height: 44,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: colors.white,
+              flex: 1,
+              textAlign: "center",
+              fontFamily: Fonts.sans,
+            }}
+          >
+            Hồ sơ
+          </Text>
+          <View style={{ width: 44 }} />
+        </View>
+
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header Section */}
           <View
