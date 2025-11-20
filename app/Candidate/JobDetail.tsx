@@ -1047,26 +1047,6 @@ export default function JobDetailScreen() {
                     {statusInfo.label}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    borderWidth: 1.5,
-                    borderColor: colors.primary,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "600",
-                      color: colors.primary,
-                      fontFamily: Fonts.sans,
-                    }}
-                  >
-                    Lưu công việc
-                  </Text>
-                </TouchableOpacity>
               </>
             );
           })()}
