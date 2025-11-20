@@ -81,6 +81,19 @@ CREATE TABLE public.employers (
   CONSTRAINT employers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT employers_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.job_applications (
+  id bigint NOT NULL DEFAULT nextval('job_applications_id_seq'::regclass),
+  job_id bigint NOT NULL,
+  candidate_id bigint NOT NULL,
+  resume_id bigint,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'viewed'::text, 'shortlisted'::text, 'interview'::text, 'rejected'::text, 'hired'::text])),
+  applied_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT job_applications_pkey PRIMARY KEY (id),
+  CONSTRAINT job_applications_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
+  CONSTRAINT job_applications_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id),
+  CONSTRAINT job_applications_resume_id_fkey FOREIGN KEY (resume_id) REFERENCES public.resumes(id)
+);
 CREATE TABLE public.job_skills (
   id bigint NOT NULL DEFAULT nextval('job_skills_id_seq'::regclass),
   job_id bigint NOT NULL,

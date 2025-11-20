@@ -20,17 +20,26 @@ import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
 interface JobPosting {
   id: string;
   title: string;
-  company: string;
+  company?: string;
+  company_id?: number;
+  companies?: {
+    id: number;
+    name: string;
+  };
   location: string;
-  salary: string;
-  applications: number;
-  views: number;
-  status: "active" | "closed" | "draft";
-  createdDate: string;
-  deadline: string;
-  level: "entry" | "mid" | "senior";
-  applicantsCv: number;
-  description: string;
+  salary?: string;
+  applications?: number;
+  views?: number;
+  view_count?: number;
+  is_active?: boolean | null;
+  status?: "active" | "closed" | "draft";
+  createdDate?: string;
+  created_at?: string;
+  deadline?: string;
+  level?: "entry" | "mid" | "senior";
+  experience_level?: string;
+  applicantsCv?: number;
+  description?: string;
 }
 
 export default function JobApplicationScreen() {
@@ -66,6 +75,44 @@ export default function JobApplicationScreen() {
       buttons || [{ text: "OK", onPress: () => setAlertVisible(false) }]
     );
     setAlertVisible(true);
+  };
+
+  const handleDeleteJob = (jobId: string | number) => {
+    showAlert(
+      "Xóa công việc",
+      "Bạn có chắc muốn xóa công việc này? Hành động này không thể hoàn tác.",
+      [
+        {
+          text: "Xóa",
+          onPress: () => {
+            setAlertVisible(false);
+            deleteJobConfirmed(jobId);
+          },
+        },
+        {
+          text: "Hủy",
+          onPress: () => setAlertVisible(false),
+        },
+      ]
+    );
+  };
+
+  const deleteJobConfirmed = async (jobId: string | number) => {
+    try {
+      const jobIdNum = typeof jobId === "string" ? parseInt(jobId) : jobId;
+      await jobService.deleteJob(jobIdNum);
+      // Cập nhật danh sách công việc
+      setJobPostings(jobPostings.filter((job) => job.id !== jobIdNum));
+      showAlert("Thành công", "Xóa công việc thành công", [
+        {
+          text: "OK",
+          onPress: () => setAlertVisible(false),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      showAlert("Lỗi", "Không thể xóa công việc");
+    }
   };
 
   useEffect(() => {
@@ -118,20 +165,17 @@ export default function JobApplicationScreen() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return { bg: "#F6FFED", text: "#52C41A", label: "Đang tuyển" };
-      case "closed":
-        return { bg: "#FFF1F0", text: "#FF7875", label: "Đã đóng" };
-      case "draft":
-        return { bg: "#F5F5F5", text: "#8C8C8C", label: "Nháp" };
-      default:
-        return { bg: "#F5F5F5", text: "#8C8C8C", label: "Khác" };
+  const getStatusColor = (isActive: boolean | null) => {
+    if (isActive === true) {
+      return { bg: "#F6FFED", text: "#52C41A", label: "Đang tuyển" };
+    } else if (isActive === false) {
+      return { bg: "#FFF1F0", text: "#FF7875", label: "Đã đóng" };
+    } else {
+      return { bg: "#F5F5F5", text: "#8C8C8C", label: "Nháp" };
     }
   };
 
-  const getLevelLabel = (level: string) => {
+  const getLevelLabel = (level: string | undefined) => {
     switch (level) {
       case "entry":
         return "Người mới";
@@ -147,30 +191,30 @@ export default function JobApplicationScreen() {
   const filteredJobs = jobPostings
     .filter((job) => {
       const matchesSearch =
-        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchQuery.toLowerCase());
+        (job.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.company || "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
-        filterStatus === "all" || job.status === filterStatus;
+        filterStatus === "all" || job.is_active === (filterStatus === "active");
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
-        return parseInt(b.id) - parseInt(a.id);
+        return (parseInt(b.id as any) || 0) - (parseInt(a.id as any) || 0);
       } else if (sortBy === "popular") {
-        return b.views - a.views;
+        return (b.view_count || 0) - (a.view_count || 0);
       } else if (sortBy === "applications") {
-        return b.applications - a.applications;
+        return (b.applications || 0) - (a.applications || 0);
       }
       return 0;
     });
 
   const statistics = {
     total: jobPostings.length,
-    active: jobPostings.filter((j) => j.status === "active").length,
-    closed: jobPostings.filter((j) => j.status === "closed").length,
-    draft: jobPostings.filter((j) => j.status === "draft").length,
-    totalApplications: jobPostings.reduce((sum, j) => sum + j.applications, 0),
-    totalViews: jobPostings.reduce((sum, j) => sum + j.views, 0),
+    active: jobPostings.filter((j) => j.is_active === true).length,
+    closed: jobPostings.filter((j) => j.is_active === false).length,
+    draft: jobPostings.filter((j) => j.is_active === null).length,
+    totalApplications: jobPostings.reduce((sum, j) => sum + (j.applications || 0), 0),
+    totalViews: jobPostings.reduce((sum, j) => sum + (j.view_count || 0), 0),
   };
 
   const StatCard = ({ icon, label, value, color }: any) => (
@@ -210,7 +254,7 @@ export default function JobApplicationScreen() {
   );
 
   const JobCard = ({ item }: { item: JobPosting }) => {
-    const statusInfo = getStatusColor(item.status);
+    const statusInfo = getStatusColor(item.is_active as any);
     return (
       <TouchableOpacity
         style={{
@@ -244,7 +288,7 @@ export default function JobApplicationScreen() {
                 color: colors.textDark,
               }}
             >
-              {item.title}
+              {item.title || "Không có tiêu đề"}
             </Text>
             <Text
               style={{
@@ -253,7 +297,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.company} • {item.location}
+              {item.companies?.name || item.company || "Công ty"} • {item.location || "Địa điểm"}
             </Text>
           </View>
           <View
@@ -299,7 +343,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.salary}
+              {item.salary || "Thỏa thuận"}
             </Text>
           </View>
           <View>
@@ -312,7 +356,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {getLevelLabel(item.level)}
+              {getLevelLabel(item.level || item.experience_level)}
             </Text>
           </View>
           <View>
@@ -327,7 +371,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.deadline}
+              {item.deadline ? new Date(item.deadline).toLocaleDateString("vi-VN") : "N/A"}
             </Text>
           </View>
         </View>
@@ -357,7 +401,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.applicantsCv}
+              {item.applicantsCv || 0}
             </Text>
             <Text
               style={{
@@ -382,7 +426,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.applications}
+              {item.applications || 0}
             </Text>
             <Text
               style={{
@@ -403,7 +447,7 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.views}
+              {item.view_count || item.views || 0}
             </Text>
             <Text
               style={{
@@ -425,9 +469,7 @@ export default function JobApplicationScreen() {
         >
           <TouchableOpacity
             onPress={() =>
-              router.push({
-                pathname: "/Employer/JobDetail",
-              })
+              router.push(`/Employer/JobDetail?jobId=${item.id}`)
             }
             style={{
               flex: 1,
@@ -448,6 +490,9 @@ export default function JobApplicationScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() =>
+              router.push(`/Employer/JobEditing?jobId=${item.id}`)
+            }
             style={{
               paddingVertical: 10,
               paddingHorizontal: 12,
@@ -465,6 +510,7 @@ export default function JobApplicationScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => handleDeleteJob(item.id)}
             style={{
               paddingVertical: 10,
               paddingHorizontal: 12,

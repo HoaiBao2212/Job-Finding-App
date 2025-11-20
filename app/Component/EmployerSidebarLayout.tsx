@@ -50,6 +50,11 @@ const MENU_ITEMS: MenuItem[] = [
     route: "/Employer/JobApplication",
   },
   {
+    icon: "office-building",
+    label: "Công ty",
+    route: "/Employer/CompanyDetail",
+  },
+  {
     icon: "account-multiple",
     label: "Người ứng tuyển",
     route: "/Employer/CandidateApply",
@@ -115,13 +120,6 @@ export default function EmployerSidebarLayout({
     setAlertMessage("Bạn có chắc chắn muốn đăng xuất?");
     setAlertButtons([
       {
-        text: "Hủy",
-        style: "cancel",
-        onPress: () => {
-          setAlertVisible(false);
-        },
-      },
-      {
         text: "Đăng xuất",
         style: "destructive",
         onPress: async () => {
@@ -142,6 +140,13 @@ export default function EmployerSidebarLayout({
             );
             setAlertTitle("Lỗi");
           }
+        },
+      },
+      {
+        text: "Hủy",
+        style: "cancel",
+        onPress: () => {
+          setAlertVisible(false);
         },
       },
     ]);

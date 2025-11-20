@@ -48,7 +48,9 @@ export default function EmployerJobDetailScreen() {
   const { alertState, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
-    if (jobId) {
+    console.log("JobDetail params:", params);
+    console.log("JobDetail jobId:", jobId);
+    if (jobId && !isNaN(jobId)) {
       loadJobDetail();
     } else {
       setLoading(false);
@@ -58,11 +60,13 @@ export default function EmployerJobDetailScreen() {
   const loadJobDetail = async () => {
     try {
       setLoading(true);
+      console.log("Loading job with ID:", jobId);
       const jobData = await jobService.getJobById(jobId!);
+      console.log("Loaded job data:", jobData);
       setJob(jobData);
     } catch (error) {
       console.error("Error loading job detail:", error);
-      showAlert("Lỗi", "Không thể tải chi tiết công việc");
+      showAlert("Lỗi", `Không thể tải chi tiết công việc: ${String(error)}`);
     } finally {
       setLoading(false);
     }
@@ -613,6 +617,9 @@ export default function EmployerJobDetailScreen() {
             {/* Action Buttons */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 32 }}>
               <TouchableOpacity
+                onPress={() =>
+                  router.push(`/Employer/JobEditing?jobId=${jobId}`)
+                }
                 style={{
                   flex: 1,
                   paddingVertical: 12,
