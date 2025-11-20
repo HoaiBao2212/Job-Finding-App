@@ -222,7 +222,7 @@ export default function JobDetailScreen() {
     <SidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-        
+
         {/* Header */}
         <View
           style={{
@@ -234,7 +234,7 @@ export default function JobDetailScreen() {
             backgroundColor: colors.primary,
           }}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.back()}
             style={{
               width: 44,
@@ -252,16 +252,16 @@ export default function JobDetailScreen() {
             />
           </TouchableOpacity>
           <Text
-            style={{ 
-              fontSize: 16, 
-              fontWeight: "600", 
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
               color: colors.white,
               fontFamily: Fonts.sans,
             }}
           >
             Chi tiết công việc
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleShare}
             style={{
               width: 44,
@@ -546,7 +546,13 @@ export default function JobDetailScreen() {
               elevation: 2,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
               <View
                 style={{
                   width: 36,
@@ -602,7 +608,13 @@ export default function JobDetailScreen() {
               elevation: 2,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
               <View
                 style={{
                   width: 36,
@@ -688,7 +700,13 @@ export default function JobDetailScreen() {
               elevation: 2,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
               <View
                 style={{
                   width: 36,
