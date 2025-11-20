@@ -21,18 +21,24 @@ import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
 import { useAlert } from "../Component/useAlert";
 
 interface Candidate {
-  id: string;
-  name: string;
-  avatar: string;
-  position: string;
-  jobApplied: string;
-  email: string;
-  phone: string;
-  appliedDate: string;
-  status: "new" | "reviewing" | "accepted" | "rejected" | "interview";
-  score: number;
-  experience: string;
-  location: string;
+  id: number;
+  job_id: number;
+  job_title?: string;
+  candidate_id: number;
+  status: string;
+  applied_at: string;
+  candidate_profiles?: {
+    id: number;
+    headline?: string;
+    years_of_experience?: number;
+  };
+  user?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    avatar_url?: string;
+  };
 }
 
 export default function CandidateApplyScreen() {
@@ -41,7 +47,7 @@ export default function CandidateApplyScreen() {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "new" | "reviewing" | "accepted" | "rejected" | "interview"
   >("all");
-  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(
+  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(
     null
   );
   const [loading, setLoading] = useState(true);
@@ -67,11 +73,16 @@ export default function CandidateApplyScreen() {
         setEmployerId(employer.id);
         // Lấy danh sách công việc của employer
         const jobs = await jobService.getEmployerJobs(employer.id);
-        // Lấy danh sách ứng tuyển cho các công việc
+        // Lấy danh sách ứng tuyển cho các công việc kèm thông tin job title
         const allApplications: any[] = [];
         for (const job of jobs) {
           const apps = await jobService.getApplications(job.id);
-          allApplications.push(...apps);
+          // Thêm job_title vào mỗi application
+          const appsWithJobTitle = apps.map((app: any) => ({
+            ...app,
+            job_title: job.title,
+          }));
+          allApplications.push(...appsWithJobTitle);
         }
         setCandidates(allApplications);
       }
@@ -82,92 +93,7 @@ export default function CandidateApplyScreen() {
     }
   };
 
-  const defaultCandidates: Candidate[] = [
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      position: "React Native Developer",
-      jobApplied: "React Native Developer",
-      email: "nguyenvana@email.com",
-      phone: "+84 912 345 678",
-      appliedDate: "Hôm nay",
-      status: "new",
-      score: 85,
-      experience: "3+ năm",
-      location: "TP. Hồ Chí Minh",
-    },
-    {
-      id: "2",
-      name: "Trần Thị B",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      position: "UI/UX Designer",
-      jobApplied: "UI/UX Designer",
-      email: "tranthib@email.com",
-      phone: "+84 901 234 567",
-      appliedDate: "Hôm qua",
-      status: "reviewing",
-      score: 92,
-      experience: "2+ năm",
-      location: "Hà Nội",
-    },
-    {
-      id: "3",
-      name: "Lê Văn C",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      position: "React Native Developer",
-      jobApplied: "React Native Developer",
-      email: "levanc@email.com",
-      phone: "+84 908 765 432",
-      appliedDate: "2 ngày trước",
-      status: "interview",
-      score: 88,
-      experience: "4+ năm",
-      location: "Đà Nẵng",
-    },
-    {
-      id: "4",
-      name: "Phạm Thị D",
-      avatar: "https://i.pravatar.cc/150?img=4",
-      position: "Frontend Developer",
-      jobApplied: "Frontend Developer",
-      email: "phamthid@email.com",
-      phone: "+84 916 543 210",
-      appliedDate: "3 ngày trước",
-      status: "accepted",
-      score: 95,
-      experience: "2+ năm",
-      location: "TP. Hồ Chí Minh",
-    },
-    {
-      id: "5",
-      name: "Hoàng Văn E",
-      avatar: "https://i.pravatar.cc/150?img=5",
-      position: "Backend Developer",
-      jobApplied: "Backend Developer",
-      email: "hoangvane@email.com",
-      phone: "+84 917 654 321",
-      appliedDate: "5 ngày trước",
-      status: "rejected",
-      score: 65,
-      experience: "1+ năm",
-      location: "Hải Phòng",
-    },
-    {
-      id: "6",
-      name: "Võ Thị F",
-      avatar: "https://i.pravatar.cc/150?img=6",
-      position: "React Native Developer",
-      jobApplied: "React Native Developer",
-      email: "vothif@email.com",
-      phone: "+84 918 765 432",
-      appliedDate: "1 tuần trước",
-      status: "new",
-      score: 78,
-      experience: "1+ năm",
-      location: "Cần Thơ",
-    },
-  ];
+  const defaultCandidates: Candidate[] = [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -224,19 +150,26 @@ export default function CandidateApplyScreen() {
     rejected: candidates.filter((c) => c.status === "rejected").length,
   };
 
-  const handleStatusChange = (candidateId: string, newStatus: string) => {
+  const handleStatusChange = (applicationId: number, newStatus: string) => {
     showAlert(
       "Cập nhập trạng thái",
       "Bạn có chắc chắn muốn cập nhập trạng thái ứng viên?",
       [
-        { text: "Hủy", style: "cancel", onPress: () => hideAlert() },
+        { text: "Hủy", style: "cancel", onPress: () => {} },
         {
           text: "Xác nhận",
           style: "default",
-          onPress: () => {
-            showAlert("Thành công", "Trạng thái ứng viên đã được cập nhập", [
-              { text: "OK", style: "default", onPress: () => hideAlert() },
-            ]);
+          onPress: async () => {
+            try {
+              await jobService.updateApplicationStatus(applicationId, newStatus);
+              // Cập nhật lại danh sách
+              loadApplications();
+              showAlert("Thành công", "Trạng thái ứng viên đã được cập nhập", [
+                { text: "OK", style: "default", onPress: () => {} },
+              ]);
+            } catch (error) {
+              showAlert("Lỗi", "Không thể cập nhập trạng thái");
+            }
           },
         },
       ]
@@ -245,7 +178,12 @@ export default function CandidateApplyScreen() {
 
   const CandidateCard = ({ item }: { item: Candidate }) => {
     const statusInfo = getStatusColor(item.status);
-    const scoreColor = getScoreColor(item.score);
+    const candidateName = item.user?.full_name || "Không xác định";
+    const candidateEmail = item.user?.email || "";
+    const candidatePhone = item.user?.phone || "";
+    const candidateAvatar = item.user?.avatar_url || "https://i.pravatar.cc/150?img=1";
+    const experience = item.candidate_profiles?.years_of_experience || 0;
+    const headline = item.candidate_profiles?.headline || "";
 
     return (
       <TouchableOpacity
@@ -276,7 +214,7 @@ export default function CandidateApplyScreen() {
           }}
         >
           <Image
-            source={{ uri: item.avatar }}
+            source={{ uri: candidateAvatar }}
             style={{
               width: 60,
               height: 60,
@@ -295,7 +233,7 @@ export default function CandidateApplyScreen() {
                 color: colors.textDark,
               }}
             >
-              {item.name}
+              {candidateName}
             </Text>
             <Text
               style={{
@@ -303,8 +241,9 @@ export default function CandidateApplyScreen() {
                 color: colors.textGray,
                 marginTop: 2,
               }}
+              numberOfLines={1}
             >
-              {item.position}
+              {headline || item.job_title || "Không xác định"}
             </Text>
             <Text
               style={{
@@ -313,7 +252,7 @@ export default function CandidateApplyScreen() {
                 marginTop: 2,
               }}
             >
-              📍 {item.location}
+              📧 {candidateEmail.split("@")[0]}
             </Text>
           </View>
 
@@ -328,7 +267,7 @@ export default function CandidateApplyScreen() {
                 width: 50,
                 height: 50,
                 borderRadius: 25,
-                backgroundColor: scoreColor,
+                backgroundColor: statusInfo.bg,
                 justifyContent: "center",
                 alignItems: "center",
                 marginBottom: 4,
@@ -336,12 +275,12 @@ export default function CandidateApplyScreen() {
             >
               <Text
                 style={{
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: "700",
-                  color: colors.white,
+                  color: statusInfo.text,
                 }}
               >
-                {item.score}
+                {experience}y
               </Text>
             </View>
             <Text
@@ -350,7 +289,7 @@ export default function CandidateApplyScreen() {
                 color: colors.textGray,
               }}
             >
-              Điểm
+              Kinh nghiệm
             </Text>
           </View>
         </View>
@@ -392,7 +331,7 @@ export default function CandidateApplyScreen() {
               color: colors.textGray,
             }}
           >
-            {item.appliedDate}
+            {new Date(item.applied_at).toLocaleDateString("vi-VN")}
           </Text>
         </View>
 
@@ -436,8 +375,9 @@ export default function CandidateApplyScreen() {
                     fontSize: 12,
                     color: colors.textDark,
                   }}
+                  numberOfLines={1}
                 >
-                  {item.email}
+                  {candidateEmail}
                 </Text>
               </View>
               <View
@@ -457,8 +397,9 @@ export default function CandidateApplyScreen() {
                     fontSize: 12,
                     color: colors.textDark,
                   }}
+                  numberOfLines={1}
                 >
-                  {item.phone}
+                  {candidatePhone}
                 </Text>
               </View>
             </View>
@@ -480,7 +421,7 @@ export default function CandidateApplyScreen() {
                   marginBottom: 8,
                 }}
               >
-                Kinh nghiệm: {item.experience}
+                Kinh nghiệm: {experience} năm
               </Text>
               <Text
                 style={{
@@ -488,7 +429,7 @@ export default function CandidateApplyScreen() {
                   color: colors.textGray,
                 }}
               >
-                Công việc: {item.jobApplied}
+                Công việc: {item.job_title}
               </Text>
             </View>
 

@@ -2,13 +2,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { colors } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
@@ -281,63 +281,19 @@ export default function CompanyDetailScreen() {
             >
               <View style={{ alignItems: "center" }}>
                 <MaterialCommunityIcons
-                  name="briefcase"
-                  size={24}
-                  color={colors.primary}
-                />
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: "700",
-                    color: colors.textDark,
-                    marginTop: 8,
-                  }}
-                >
-                  {jobCount}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: colors.textGray,
-                    marginTop: 4,
-                  }}
-                >
-                  Công việc
-                </Text>
-              </View>
-              <View style={{ alignItems: "center" }}>
-                <MaterialCommunityIcons
-                  name="calendar"
-                  size={24}
-                  color={colors.primary}
-                />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "600",
-                    color: colors.textDark,
-                    marginTop: 8,
-                    textAlign: "center",
-                  }}
-                >
-                  {new Date(company.created_at || "").getFullYear() || "N/A"}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: colors.textGray,
-                    marginTop: 4,
-                  }}
-                >
-                  Năm thành lập
-                </Text>
-              </View>
-              <View style={{ alignItems: "center" }}>
-                <MaterialCommunityIcons
                   name="map-marker"
                   size={24}
                   color={colors.primary}
                 />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.textGray,
+                    marginTop: 4,
+                  }}
+                >
+                  Địa điểm
+                </Text>
                 <Text
                   style={{
                     fontSize: 12,
@@ -350,6 +306,14 @@ export default function CompanyDetailScreen() {
                     ? company.location.split(",")[0]
                     : "Không xác định"}
                 </Text>
+                
+              </View>
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="briefcase"
+                  size={24}
+                  color={colors.primary}
+                />
                 <Text
                   style={{
                     fontSize: 12,
@@ -357,7 +321,17 @@ export default function CompanyDetailScreen() {
                     marginTop: 4,
                   }}
                 >
-                  Địa điểm
+                  Công việc
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 8,
+                  }}
+                >
+                  {jobCount}
                 </Text>
               </View>
             </View>
