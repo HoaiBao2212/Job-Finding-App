@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   SafeAreaView,
   ScrollView,
   Share,
@@ -13,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { colors, Fonts } from "../../constants/theme";
+import { authService } from "../../lib/services/authService";
 import { supabase } from "../../lib/supabase";
 import SidebarLayout from "../Component/SidebarLayout";
 
@@ -46,16 +48,131 @@ export default function JobDetailScreen() {
   const [loading, setLoading] = React.useState(true);
   const [job, setJob] = React.useState<JobDetail | null>(null);
   const [isSaved, setIsSaved] = React.useState(false);
+  const [showApplyModal, setShowApplyModal] = React.useState(false);
+  const [userProfile, setUserProfile] = React.useState<any>(null);
+  const [candidateProfile, setCandidateProfile] = React.useState<any>(null);
+  const [applying, setApplying] = React.useState(false);
+  const [applicationStatus, setApplicationStatus] = React.useState<
+    string | null
+  >(null);
 
   React.useEffect(() => {
     console.log("JobDetail params:", params);
     console.log("JobDetail jobId:", jobId);
     if (jobId) {
       loadJobDetail();
+      checkApplicationStatus();
     } else {
       setLoading(false);
     }
   }, [jobId]);
+
+  const checkApplicationStatus = async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) return;
+
+      // Get candidate profile
+      const { data: candidateData } = await supabase
+        .from("candidate_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (candidateData && jobId) {
+        // Check application status
+        const { data: appData } = await supabase
+          .from("job_applications")
+          .select("status")
+          .eq("job_id", jobId)
+          .eq("candidate_id", candidateData.id)
+          .single();
+
+        if (appData) {
+          setApplicationStatus(appData.status);
+          console.log("Application status:", appData.status);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking application status:", error);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Load profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData) {
+        setUserProfile(profileData);
+      }
+
+      // Load candidate profile
+      const { data: candidateData } = await supabase
+        .from("candidate_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (candidateData) {
+        setCandidateProfile(candidateData);
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+    }
+  };
+
+  const handleApplyModal = async () => {
+    await loadUserProfile();
+    setShowApplyModal(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!job || !candidateProfile) {
+      Alert.alert("Lỗi", "Không thể tạo đơn ứng tuyển");
+      return;
+    }
+
+    try {
+      setApplying(true);
+
+      // Create job application
+      const { error } = await supabase.from("job_applications").insert([
+        {
+          job_id: job.id,
+          candidate_id: candidateProfile.id,
+          status: "pending",
+        },
+      ]);
+
+      if (error) throw error;
+
+      // Reload application status from database
+      await checkApplicationStatus();
+      setShowApplyModal(false);
+      Alert.alert("Thành công", "Đơn ứng tuyển đã được gửi!", [
+        {
+          text: "OK",
+          onPress: () => {},
+        },
+      ]);
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      Alert.alert("Lỗi", "Không thể gửi đơn ứng tuyển");
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const loadJobDetail = async () => {
     try {
@@ -152,6 +269,51 @@ export default function JobDetailScreen() {
       senior: "Cao cấp",
     };
     return levelMap[level || ""] || level || "Không xác định";
+  };
+
+  const getApplicationStatusInfo = (status: string | null) => {
+    if (!status) {
+      return {
+        label: "Ứng tuyển ngay",
+        backgroundColor: colors.primary,
+        textColor: colors.white,
+        disabled: false,
+      };
+    }
+
+    const statusMap: {
+      [key: string]: {
+        label: string;
+        backgroundColor: string;
+        textColor: string;
+      };
+    } = {
+      pending: {
+        label: "Đang chờ phản hồi",
+        backgroundColor: "#FFF3E0",
+        textColor: "#F57C00",
+      },
+      rejected: {
+        label: "Đã từ chối",
+        backgroundColor: "#FFEBEE",
+        textColor: "#C62828",
+      },
+      interview: {
+        label: "Nhận phỏng vấn",
+        backgroundColor: "#F3E5F5",
+        textColor: "#6A1B9A",
+      },
+      hired: {
+        label: "Đã được nhận làm",
+        backgroundColor: "#E8F5E9",
+        textColor: "#2E7D32",
+      },
+    };
+
+    return {
+      ...statusMap[status],
+      disabled: status !== "rejected",
+    };
   };
 
   const handleShare = async () => {
@@ -844,51 +1006,411 @@ export default function JobDetailScreen() {
             gap: 8,
           }}
         >
-          <TouchableOpacity
-            style={{
-              backgroundColor: colors.primary,
-              paddingVertical: 14,
-              borderRadius: 12,
-              alignItems: "center",
-              shadowColor: colors.shadowLight,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-              elevation: 5,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: colors.white,
-                fontFamily: Fonts.sans,
-              }}
-            >
-              Ứng tuyển ngay
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              paddingVertical: 12,
-              borderRadius: 12,
-              alignItems: "center",
-              borderWidth: 1.5,
-              borderColor: colors.primary,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: colors.primary,
-                fontFamily: Fonts.sans,
-              }}
-            >
-              Lưu công việc
-            </Text>
-          </TouchableOpacity>
+          {(() => {
+            const statusInfo = getApplicationStatusInfo(applicationStatus);
+            return (
+              <>
+                <TouchableOpacity
+                  onPress={
+                    applicationStatus && applicationStatus !== "rejected"
+                      ? undefined
+                      : handleApplyModal
+                  }
+                  disabled={
+                    applicationStatus !== null &&
+                    applicationStatus !== "rejected"
+                  }
+                  style={{
+                    backgroundColor: statusInfo.backgroundColor,
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    shadowColor: colors.shadowLight,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    elevation: 5,
+                    opacity:
+                      applicationStatus && applicationStatus !== "rejected"
+                        ? 0.7
+                        : 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "600",
+                      color: statusInfo.textColor,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {statusInfo.label}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    borderWidth: 1.5,
+                    borderColor: colors.primary,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "600",
+                      color: colors.primary,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    Lưu công việc
+                  </Text>
+                </TouchableOpacity>
+              </>
+            );
+          })()}
         </View>
+
+        {/* Apply Modal */}
+        <Modal
+          visible={showApplyModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowApplyModal(false)}
+        >
+          <SafeAreaView
+            style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          >
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "flex-end",
+                backgroundColor: "transparent",
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: colors.white,
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  paddingHorizontal: 16,
+                  paddingTop: 20,
+                  maxHeight: "90%",
+                }}
+              >
+                {/* Modal Header */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 20,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: "700",
+                      color: colors.textDark,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    Xác nhận ứng tuyển
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowApplyModal(false)}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: 8,
+                      backgroundColor: colors.bgNeutral,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="close"
+                      size={20}
+                      color={colors.textGray}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {/* Job Info */}
+                  <View
+                    style={{
+                      backgroundColor: colors.primarySoftBg,
+                      borderRadius: 12,
+                      padding: 14,
+                      marginBottom: 16,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: colors.textGray,
+                        marginBottom: 4,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      Công việc
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "700",
+                        color: colors.primary,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      {job?.title}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: colors.textGray,
+                        marginTop: 4,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      {job?.companies?.name}
+                    </Text>
+                  </View>
+
+                  {/* User Info Section */}
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: colors.textDark,
+                        marginBottom: 12,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      Thông tin ứng viên
+                    </Text>
+
+                    {/* Name */}
+                    <View
+                      style={{
+                        backgroundColor: colors.bgNeutral,
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.textGray,
+                          marginBottom: 4,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        Họ và tên
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "600",
+                          color: colors.textDark,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        {userProfile?.full_name || "Chưa cập nhật"}
+                      </Text>
+                    </View>
+
+                    {/* Email */}
+                    <View
+                      style={{
+                        backgroundColor: colors.bgNeutral,
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.textGray,
+                          marginBottom: 4,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        Email
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "600",
+                          color: colors.textDark,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        {userProfile?.email || "Chưa cập nhật"}
+                      </Text>
+                    </View>
+
+                    {/* Phone */}
+                    <View
+                      style={{
+                        backgroundColor: colors.bgNeutral,
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.textGray,
+                          marginBottom: 4,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        Số điện thoại
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "600",
+                          color: colors.textDark,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        {userProfile?.phone || "Chưa cập nhật"}
+                      </Text>
+                    </View>
+
+                    {/* Location */}
+                    <View
+                      style={{
+                        backgroundColor: colors.bgNeutral,
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.textGray,
+                          marginBottom: 4,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        Địa chỉ
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "600",
+                          color: colors.textDark,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        {userProfile?.location || "Chưa cập nhật"}
+                      </Text>
+                    </View>
+
+                    {/* Experience */}
+                    <View
+                      style={{
+                        backgroundColor: colors.bgNeutral,
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 16,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: colors.textGray,
+                          marginBottom: 4,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        Năm kinh nghiệm
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "600",
+                          color: colors.textDark,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        {candidateProfile?.years_of_experience || 0} năm
+                      </Text>
+                    </View>
+                  </View>
+                </ScrollView>
+
+                {/* Buttons */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 10,
+                    paddingVertical: 16,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.borderLight,
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={() => setShowApplyModal(false)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      borderWidth: 1.5,
+                      borderColor: colors.primary,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "600",
+                        color: colors.primary,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      Hủy
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSubmitApplication}
+                    disabled={applying}
+                    style={{
+                      flex: 1,
+                      backgroundColor: colors.primary,
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      opacity: applying ? 0.6 : 1,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "600",
+                        color: colors.white,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      {applying ? "Đang gửi..." : "Xác nhận ứng tuyển"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </SidebarLayout>
   );
