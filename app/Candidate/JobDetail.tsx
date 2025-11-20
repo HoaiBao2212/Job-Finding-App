@@ -1,19 +1,20 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as React from 'react';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as React from "react";
 import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
   ScrollView,
   Share,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { colors } from '../../constants/theme';
-import { jobService } from '../../lib/services/jobService';
-import SidebarLayout from '../Component/SidebarLayout';
+} from "react-native";
+import { colors, Fonts } from "../../constants/theme";
+import { supabase } from "../../lib/supabase";
+import SidebarLayout from "../Component/SidebarLayout";
 
 interface JobDetail {
   id: number;
@@ -40,13 +41,15 @@ interface JobDetail {
 export default function JobDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const jobId = params.jobId ? parseInt(params.jobId as string) : null;
+  const jobId = params.id ? parseInt(params.id as string) : null;
 
   const [loading, setLoading] = React.useState(true);
   const [job, setJob] = React.useState<JobDetail | null>(null);
   const [isSaved, setIsSaved] = React.useState(false);
 
   React.useEffect(() => {
+    console.log("JobDetail params:", params);
+    console.log("JobDetail jobId:", jobId);
     if (jobId) {
       loadJobDetail();
     } else {
@@ -57,11 +60,55 @@ export default function JobDetailScreen() {
   const loadJobDetail = async () => {
     try {
       setLoading(true);
-      const jobData = await jobService.getJobById(jobId!);
-      setJob(jobData);
+      console.log("Loading job with ID:", jobId);
+      const { data, error } = await supabase
+        .from("jobs")
+        .select(
+          `
+          id,
+          title,
+          description,
+          requirements,
+          location,
+          job_type,
+          experience_level,
+          salary_min,
+          salary_max,
+          salary_currency,
+          view_count,
+          deadline,
+          is_active,
+          companies(name, industry, company_size, logo_url)
+        `
+        )
+        .eq("id", jobId)
+        .single();
+
+      console.log("Query error:", error);
+      console.log("Query data:", data);
+
+      if (error) throw error;
+
+      if (data) {
+        const companyData = Array.isArray(data.companies)
+          ? data.companies[0]
+          : data.companies;
+
+        setJob({
+          ...data,
+          companies: companyData
+            ? {
+                name: companyData.name,
+                industry: companyData.industry,
+                size: companyData.company_size,
+                logo_url: companyData.logo_url,
+              }
+            : undefined,
+        });
+      }
     } catch (error) {
-      console.error('Error loading job detail:', error);
-      Alert.alert('Lỗi', 'Không thể tải chi tiết công việc');
+      console.error("Error loading job detail:", error);
+      Alert.alert("Lỗi", "Không thể tải chi tiết công việc");
     } finally {
       setLoading(false);
     }
@@ -70,28 +117,54 @@ export default function JobDetailScreen() {
   const formatSalary = (min: number, max: number, currency: string) => {
     const formatNumber = (num: number) => {
       if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
+        return (num / 1000000).toFixed(1) + "M";
       }
-      return num.toLocaleString('vi-VN');
+      return num.toLocaleString("vi-VN");
     };
     return `${formatNumber(min)} - ${formatNumber(max)} ${currency}`;
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Không xác định';
+    if (!dateString) return "Không xác định";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN');
+      return date.toLocaleDateString("vi-VN");
     } catch {
       return dateString;
     }
+  };
+
+  const formatJobType = (jobType?: string) => {
+    const typeMap: { [key: string]: string } = {
+      "full-time": "Toàn thời gian",
+      "part-time": "Bán thời gian",
+      internship: "Thực tập",
+      remote: "Remote",
+      hybrid: "Hybrid",
+    };
+    return typeMap[jobType || ""] || jobType || "Không xác định";
+  };
+
+  const formatExperienceLevel = (level?: string) => {
+    const levelMap: { [key: string]: string } = {
+      junior: "Mới vào nghề",
+      mid: "Trung cấp",
+      senior: "Cao cấp",
+    };
+    return levelMap[level || ""] || level || "Không xác định";
   };
 
   const handleShare = async () => {
     if (!job) return;
     try {
       await Share.share({
-        message: `Công việc: ${job.title}\nCông ty: ${job.companies?.name}\nMức lương: ${formatSalary(job.salary_min, job.salary_max, job.salary_currency)}\nĐịa điểm: ${job.location}`,
+        message: `Công việc: ${job.title}\nCông ty: ${
+          job.companies?.name
+        }\nMức lương: ${formatSalary(
+          job.salary_min,
+          job.salary_max,
+          job.salary_currency
+        )}\nĐịa điểm: ${job.location}`,
       });
     } catch (error) {
       console.error(error);
@@ -102,7 +175,9 @@ export default function JobDetailScreen() {
     return (
       <SidebarLayout>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
@@ -114,9 +189,27 @@ export default function JobDetailScreen() {
     return (
       <SidebarLayout>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 }}>
-            <MaterialCommunityIcons name="alert-circle" size={48} color={colors.textGray} />
-            <Text style={{ fontSize: 16, color: colors.textDark, marginTop: 12, textAlign: 'center' }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              paddingHorizontal: 16,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={48}
+              color={colors.textGray}
+            />
+            <Text
+              style={{
+                fontSize: 16,
+                color: colors.textDark,
+                marginTop: 12,
+                textAlign: "center",
+              }}
+            >
               Không tìm thấy công việc
             </Text>
           </View>
@@ -128,46 +221,86 @@ export default function JobDetailScreen() {
   return (
     <SidebarLayout>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+
         {/* Header */}
         <View
           style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
             paddingHorizontal: 16,
             paddingVertical: 12,
-            backgroundColor: colors.white,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.borderLight,
+            backgroundColor: colors.primary,
           }}
         >
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 44,
+              height: 44,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+            }}
+          >
             <MaterialCommunityIcons
-              name="chevron-left"
-              size={28}
-              color={colors.primary}
+              name="arrow-left"
+              size={24}
+              color={colors.white}
             />
           </TouchableOpacity>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textDark }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: colors.white,
+              fontFamily: Fonts.sans,
+            }}
+          >
             Chi tiết công việc
           </Text>
-          <TouchableOpacity onPress={handleShare}>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={{
+              width: 44,
+              height: 44,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+            }}
+          >
             <MaterialCommunityIcons
               name="share-variant"
               size={24}
-              color={colors.primary}
+              color={colors.white}
             />
           </TouchableOpacity>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
           {/* Job Header Info */}
-          <View style={{ backgroundColor: colors.white, padding: 16, marginBottom: 12 }}>
+          <View
+            style={{
+              backgroundColor: colors.white,
+              padding: 16,
+              marginBottom: 12,
+              borderBottomLeftRadius: 16,
+              borderBottomRightRadius: 16,
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
             <View
               style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
                 marginBottom: 12,
               }}
             >
@@ -175,9 +308,10 @@ export default function JobDetailScreen() {
                 <Text
                   style={{
                     fontSize: 20,
-                    fontWeight: '700',
-                    color: colors.textDark,
+                    fontWeight: "700",
+                    color: colors.primary,
                     marginBottom: 4,
+                    fontFamily: Fonts.sans,
                   }}
                 >
                   {job.title}
@@ -187,9 +321,10 @@ export default function JobDetailScreen() {
                     fontSize: 14,
                     color: colors.textGray,
                     marginBottom: 8,
+                    fontFamily: Fonts.sans,
                   }}
                 >
-                  {job.companies?.name || 'Công ty'}
+                  {job.companies?.name || "Công ty"}
                 </Text>
               </View>
               <TouchableOpacity
@@ -199,24 +334,24 @@ export default function JobDetailScreen() {
                 }}
               >
                 <MaterialCommunityIcons
-                  name={isSaved ? 'heart' : 'heart-outline'}
+                  name={isSaved ? "heart" : "heart-outline"}
                   size={28}
-                  color={isSaved ? '#E63946' : colors.textGray}
+                  color={isSaved ? "#E63946" : colors.textGray}
                 />
               </TouchableOpacity>
             </View>
 
             {/* Quick Info */}
-            <View style={{ flexDirection: 'row', marginBottom: 12, gap: 12 }}>
+            <View style={{ flexDirection: "row", marginBottom: 12, gap: 8 }}>
               <View
                 style={{
                   flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  flexDirection: "row",
+                  alignItems: "center",
                   backgroundColor: colors.primarySoftBg,
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                  borderRadius: 6,
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  borderRadius: 8,
                 }}
               >
                 <MaterialCommunityIcons
@@ -224,103 +359,234 @@ export default function JobDetailScreen() {
                   size={16}
                   color={colors.primary}
                 />
-                <Text style={{ fontSize: 12, color: colors.textDark, marginLeft: 4 }}>
-                  {job.view_count} lượt xem
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.textDark,
+                    marginLeft: 6,
+                    fontWeight: "500",
+                    fontFamily: Fonts.sans,
+                  }}
+                >
+                  {job.view_count}
                 </Text>
               </View>
               <View
                 style={{
                   flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: job.is_active ? '#E8F5E9' : '#FFEBEE',
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                  borderRadius: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: job.is_active ? "#E8F5E9" : "#FFEBEE",
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  borderRadius: 8,
                 }}
               >
                 <MaterialCommunityIcons
-                  name={job.is_active ? 'check-circle' : 'close-circle'}
+                  name={job.is_active ? "check-circle" : "close-circle"}
                   size={16}
-                  color={job.is_active ? '#2E7D32' : '#C62828'}
+                  color={job.is_active ? "#2E7D32" : "#C62828"}
                 />
-                <Text style={{ fontSize: 12, color: job.is_active ? '#2E7D32' : '#C62828', marginLeft: 4 }}>
-                  {job.is_active ? 'Đang tuyển' : 'Đóng'}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: job.is_active ? "#2E7D32" : "#C62828",
+                    marginLeft: 6,
+                    fontWeight: "500",
+                    fontFamily: Fonts.sans,
+                  }}
+                >
+                  {job.is_active ? "Đang tuyển" : "Đóng"}
                 </Text>
               </View>
             </View>
 
             {/* Salary & Location */}
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons
-                  name="cash"
-                  size={18}
-                  color={colors.primary}
-                />
-                <Text
+            <View style={{ gap: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
                   style={{
-                    fontSize: 14,
-                    fontWeight: '600',
-                    color: colors.primary,
-                    marginLeft: 8,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    backgroundColor: "#FFF3E0",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 10,
                   }}
                 >
-                  {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
-                </Text>
+                  <MaterialCommunityIcons
+                    name="cash"
+                    size={18}
+                    color="#F57C00"
+                  />
+                </View>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.textGray,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    Mức lương
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: "#F57C00",
+                      marginTop: 2,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {formatSalary(
+                      job.salary_min,
+                      job.salary_max,
+                      job.salary_currency
+                    )}
+                  </Text>
+                </View>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons
-                  name="map-marker"
-                  size={18}
-                  color={colors.primary}
-                />
-                <Text
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
                   style={{
-                    fontSize: 14,
-                    color: colors.textDark,
-                    marginLeft: 8,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    backgroundColor: "#E8F5E9",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 10,
                   }}
                 >
-                  {job.location}
-                </Text>
+                  <MaterialCommunityIcons
+                    name="map-marker"
+                    size={18}
+                    color="#2E7D32"
+                  />
+                </View>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.textGray,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    Địa điểm
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: colors.textDark,
+                      marginTop: 2,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {job.location}
+                  </Text>
+                </View>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons
-                  name="clock"
-                  size={18}
-                  color={colors.primary}
-                />
-                <Text
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
                   style={{
-                    fontSize: 14,
-                    color: colors.textGray,
-                    marginLeft: 8,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    backgroundColor: "#FCE4EC",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 10,
                   }}
                 >
-                  Hạn: {formatDate(job.deadline)}
-                </Text>
+                  <MaterialCommunityIcons
+                    name="calendar"
+                    size={18}
+                    color="#C2185B"
+                  />
+                </View>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.textGray,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    Hạn chót
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: colors.textDark,
+                      marginTop: 2,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {formatDate(job.deadline)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
 
           {/* Description */}
-          <View style={{ backgroundColor: colors.white, padding: 16, marginBottom: 12 }}>
-            <Text
+          <View
+            style={{
+              backgroundColor: colors.white,
+              padding: 16,
+              marginBottom: 12,
+              borderRadius: 12,
+              marginHorizontal: 0,
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: colors.textDark,
-                marginBottom: 8,
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
               }}
             >
-              Mô tả công việc
-            </Text>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: colors.primarySoftBg,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 10,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="file-document"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                  fontFamily: Fonts.sans,
+                }}
+              >
+                Mô tả công việc
+              </Text>
+            </View>
             <Text
               style={{
                 fontSize: 13,
                 color: colors.textGray,
                 lineHeight: 20,
+                fontFamily: Fonts.sans,
               }}
             >
               {job.description}
@@ -328,120 +594,298 @@ export default function JobDetailScreen() {
           </View>
 
           {/* Requirements */}
-          <View style={{ backgroundColor: colors.white, padding: 16, marginBottom: 12 }}>
-            <Text
+          <View
+            style={{
+              backgroundColor: colors.white,
+              padding: 16,
+              marginBottom: 12,
+              borderRadius: 12,
+              marginHorizontal: 0,
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: colors.textDark,
+                flexDirection: "row",
+                alignItems: "center",
                 marginBottom: 12,
               }}
             >
-              Yêu cầu công việc
-            </Text>
-            {job.requirements && job.requirements.split('\n').map((req: string, idx: number) => (
-              req.trim() && (
-                <View key={idx} style={{ flexDirection: 'row', marginBottom: 8 }}>
-                  <MaterialCommunityIcons
-                    name="check-circle"
-                    size={18}
-                    color={colors.primary}
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontSize: 13,
-                      color: colors.textDark,
-                      lineHeight: 18,
-                    }}
-                  >
-                    {req}
-                  </Text>
-                </View>
-              )
-            ))}
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: "#FCE4EC",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 10,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="clipboard-check"
+                  size={18}
+                  color="#C2185B"
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                  fontFamily: Fonts.sans,
+                }}
+              >
+                Yêu cầu công việc
+              </Text>
+            </View>
+            {job.requirements &&
+              job.requirements.split("\n").map(
+                (req: string, idx: number) =>
+                  req.trim() && (
+                    <View
+                      key={idx}
+                      style={{ flexDirection: "row", marginBottom: 10 }}
+                    >
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: "#FFF3E0",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          marginRight: 10,
+                          marginTop: 2,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color="#F57C00"
+                        />
+                      </View>
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontSize: 13,
+                          color: colors.textDark,
+                          lineHeight: 18,
+                          fontFamily: Fonts.sans,
+                        }}
+                      >
+                        {req}
+                      </Text>
+                    </View>
+                  )
+              )}
           </View>
 
           {/* Job Type & Experience */}
-          <View style={{ backgroundColor: colors.white, padding: 16, marginBottom: 12 }}>
-            <Text
+          <View
+            style={{
+              backgroundColor: colors.white,
+              padding: 16,
+              marginBottom: 12,
+              borderRadius: 12,
+              marginHorizontal: 0,
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: colors.textDark,
+                flexDirection: "row",
+                alignItems: "center",
                 marginBottom: 12,
               }}
             >
-              Thông tin bổ sung
-            </Text>
-            <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-              <Text style={{ fontSize: 12, color: colors.textGray, flex: 1 }}>
-                Loại công việc
-              </Text>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textDark }}>
-                {job.job_type}
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: "#E8F5E9",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 10,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="briefcase"
+                  size={18}
+                  color="#2E7D32"
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                  fontFamily: Fonts.sans,
+                }}
+              >
+                Thông tin bổ sung
               </Text>
             </View>
-            <View style={{ flexDirection: 'row' }}>
-              <Text style={{ fontSize: 12, color: colors.textGray, flex: 1 }}>
-                Cấp độ kinh nghiệm
-              </Text>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textDark }}>
-                {job.experience_level}
-              </Text>
-            </View>
-          </View>
-
-          {/* Additional Info */}
-          <View style={{ backgroundColor: colors.white, padding: 16, marginBottom: 24 }}>
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ flex: 1 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                paddingBottom: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.borderLight,
+              }}
+            >
+              <View>
                 <Text
                   style={{
                     fontSize: 12,
                     color: colors.textGray,
-                    marginBottom: 4,
+                    fontFamily: Fonts.sans,
                   }}
                 >
-                  Ngành nghề
+                  Loại công việc
                 </Text>
+                <View
+                  style={{
+                    marginTop: 6,
+                    backgroundColor: colors.primarySoftBg,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: colors.primary,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {formatJobType(job.job_type)}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
                 <Text
                   style={{
-                    fontSize: 14,
-                    fontWeight: '600',
-                    color: colors.textDark,
+                    fontSize: 12,
+                    color: colors.textGray,
+                    fontFamily: Fonts.sans,
                   }}
                 >
-                  {job.companies?.industry || 'Không xác định'}
+                  Cấp độ
                 </Text>
+                <View
+                  style={{
+                    marginTop: 6,
+                    backgroundColor: "#FCE4EC",
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: "#C2185B",
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {formatExperienceLevel(job.experience_level)}
+                  </Text>
+                </View>
               </View>
+            </View>
+            <View style={{ marginTop: 12 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textGray,
+                  fontFamily: Fonts.sans,
+                }}
+              >
+                Ngành nghề
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                  marginTop: 6,
+                  fontFamily: Fonts.sans,
+                }}
+              >
+                {job.companies?.industry || "Không xác định"}
+              </Text>
             </View>
           </View>
         </ScrollView>
 
         {/* Apply Button */}
-        <View style={{ padding: 16, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
+        <View
+          style={{
+            padding: 16,
+            backgroundColor: colors.white,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderLight,
+            gap: 8,
+          }}
+        >
           <TouchableOpacity
             style={{
               backgroundColor: colors.primary,
               paddingVertical: 14,
               borderRadius: 12,
-              alignItems: 'center',
+              alignItems: "center",
               shadowColor: colors.shadowLight,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.2,
               shadowRadius: 8,
+              elevation: 5,
             }}
           >
             <Text
               style={{
                 fontSize: 16,
-                fontWeight: '600',
+                fontWeight: "600",
                 color: colors.white,
+                fontFamily: Fonts.sans,
               }}
             >
               Ứng tuyển ngay
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              paddingVertical: 12,
+              borderRadius: 12,
+              alignItems: "center",
+              borderWidth: 1.5,
+              borderColor: colors.primary,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "600",
+                color: colors.primary,
+                fontFamily: Fonts.sans,
+              }}
+            >
+              Lưu công việc
             </Text>
           </TouchableOpacity>
         </View>

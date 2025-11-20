@@ -1,7 +1,6 @@
-import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import {
   Animated,
   SafeAreaView,
@@ -10,8 +9,21 @@ import {
   View,
 } from "react-native";
 import { colors } from "../../constants/theme";
-import AlertModal from "./AlertModal";
-import { useAlert } from "./useAlert";
+
+interface SidebarContextType {
+  isOpen: boolean;
+  toggleSidebar: () => void;
+}
+
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error("useSidebar must be used within SidebarLayout");
+  }
+  return context;
+};
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -39,7 +51,6 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const { alertState, showAlert, hideAlert } = useAlert();
   const sidebarAnimation = React.useRef(new Animated.Value(0)).current;
 
   const toggleSidebar = () => {
@@ -75,245 +86,175 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     }).start();
     setIsOpen(false);
   };
-  const handleLogout = () => {
-    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-        onPress: () => hideAlert(),
-      },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const { error } = await supabase.auth.signOut();
-
-            if (error) {
-              showAlert("Lỗi", error.message);
-              return;
-            }
-
-            // Reset stack về màn login
-            router.replace("/(auth)/login");
-          } catch (err: any) {
-            showAlert(
-              "Lỗi",
-              err?.message || "Không thể đăng xuất. Hãy thử lại."
-            );
-          }
-        },
-      },
-    ]);
-  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-      <View style={{ flex: 1, flexDirection: "row" }}>
-        {/* Sidebar */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 280,
-            backgroundColor: colors.white,
-            borderRightWidth: 1,
-            borderRightColor: colors.borderLight,
-            zIndex: 1000,
-            transform: [{ translateX: sidebarTranslate }],
-            shadowColor: "#000",
-            shadowOffset: { width: 2, height: 0 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-          }}
-        >
-          {/* Sidebar Header */}
-          <View
-            style={{
-              paddingVertical: 24,
-              paddingHorizontal: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.borderLight,
-              marginBottom: 16,
-            }}
-          >
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: colors.primarySoftBg,
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="briefcase"
-                size={28}
-                color={colors.primary}
-              />
-            </View>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "700",
-                color: colors.textDark,
-              }}
-            >
-              Việc Làm
-            </Text>
-          </View>
-
-          {/* Menu Items */}
-          {MENU_ITEMS.map((item) => {
-            const isActive = pathname === item.route;
-            return (
-              <TouchableOpacity
-                key={item.route}
-                onPress={() => handleMenuPress(item.route)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  marginHorizontal: 8,
-                  marginVertical: 4,
-                  borderRadius: 8,
-                  backgroundColor: isActive
-                    ? colors.primarySoftBg
-                    : "transparent",
-                }}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon as any}
-                  size={24}
-                  color={isActive ? colors.primary : colors.textGray}
-                  style={{ marginRight: 12 }}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: isActive ? "600" : "500",
-                    color: isActive ? colors.primary : colors.textDark,
-                  }}
-                >
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Sidebar Footer */}
-          <View
+    <SidebarContext.Provider value={{ isOpen, toggleSidebar }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+        <View style={{ flex: 1, flexDirection: "row" }}>
+          {/* Sidebar */}
+          <Animated.View
             style={{
               position: "absolute",
-              bottom: 0,
               left: 0,
-              right: 0,
-              padding: 16,
-              borderTopWidth: 1,
-              borderTopColor: colors.borderLight,
-            }}
-          >
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 12,
-                paddingHorizontal: 12,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="logout"
-                size={20}
-                color={colors.textGray}
-                style={{ marginRight: 12 }}
-              />
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "500",
-                  color: colors.textGray,
-                }}
-              >
-                Đăng xuất
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Overlay */}
-        {isOpen && (
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={closeSidebar}
-            style={{
-              position: "absolute",
               top: 0,
-              left: 0,
-              right: 0,
               bottom: 0,
-              zIndex: 999,
-            }}
-          >
-            <Animated.View
-              style={{
-                flex: 1,
-                backgroundColor: "#000",
-                opacity: overlayOpacity,
-              }}
-            />
-          </TouchableOpacity>
-        )}
-
-        {/* Main Content */}
-        <View style={{ flex: 1, position: "relative" }}>
-          {/* Toggle Button */}
-          <TouchableOpacity
-            onPress={toggleSidebar}
-            style={{
-              position: "absolute",
-              top: 16,
-              left: 16,
-              zIndex: 100,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: colors.primary,
-              justifyContent: "center",
-              alignItems: "center",
-              shadowColor: colors.shadowLight,
-              shadowOffset: { width: 0, height: 2 },
+              width: 280,
+              backgroundColor: colors.white,
+              borderRightWidth: 1,
+              borderRightColor: colors.borderLight,
+              zIndex: 1000,
+              transform: [{ translateX: sidebarTranslate }],
+              shadowColor: "#000",
+              shadowOffset: { width: 2, height: 0 },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
               elevation: 5,
             }}
           >
-            <MaterialCommunityIcons
-              name={isOpen ? "close" : "menu"}
-              size={24}
-              color={colors.white}
-            />
-          </TouchableOpacity>
+            {/* Sidebar Header */}
+            <View
+              style={{
+                paddingVertical: 24,
+                paddingHorizontal: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.borderLight,
+                marginBottom: 16,
+              }}
+            >
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: colors.primarySoftBg,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="briefcase"
+                  size={28}
+                  color={colors.primary}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: colors.textDark,
+                }}
+              >
+                Việc Làm
+              </Text>
+            </View>
 
-          {/* Page Content */}
-          {children}
+            {/* Menu Items */}
+            {MENU_ITEMS.map((item) => {
+              const isActive = pathname === item.route;
+              return (
+                <TouchableOpacity
+                  key={item.route}
+                  onPress={() => handleMenuPress(item.route)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    marginHorizontal: 8,
+                    marginVertical: 4,
+                    borderRadius: 8,
+                    backgroundColor: isActive
+                      ? colors.primarySoftBg
+                      : "transparent",
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={24}
+                    color={isActive ? colors.primary : colors.textGray}
+                    style={{ marginRight: 12 }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: isActive ? "600" : "500",
+                      color: isActive ? colors.primary : colors.textDark,
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Sidebar Footer */}
+            <View
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: 16,
+                borderTopWidth: 1,
+                borderTopColor: colors.borderLight,
+              }}
+            >
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="logout"
+                  size={20}
+                  color={colors.textGray}
+                  style={{ marginRight: 12 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "500",
+                    color: colors.textGray,
+                  }}
+                >
+                  Đăng xuất
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+
+          {/* Overlay */}
+          {isOpen && (
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={closeSidebar}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+              }}
+            >
+              <Animated.View
+                style={{
+                  flex: 1,
+                  backgroundColor: "#000",
+                  opacity: overlayOpacity,
+                }}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Main Content */}
+          <View style={{ flex: 1, position: "relative" }}>{children}</View>
         </View>
-      </View>
-
-      {/* Alert Modal */}
-      <AlertModal
-        visible={alertState.visible}
-        title={alertState.title}
-        message={alertState.message}
-        buttons={alertState.buttons}
-        onDismiss={hideAlert}
-      />
-    </SafeAreaView>
+      </SafeAreaView>
+    </SidebarContext.Provider>
   );
 }
