@@ -162,7 +162,17 @@ export const jobService = {
     try {
       const { data, error } = await supabase
         .from('job_applications')
-        .select('*, candidate_profiles(*, user:profiles(*)), resumes(*)')
+        .select(`
+          *,
+          candidate_profiles(
+            id,
+            user_id,
+            headline,
+            years_of_experience,
+            profiles:user_id(id, full_name, email, phone, avatar_url)
+          ),
+          resumes(*)
+        `)
         .eq('job_id', jobId)
         .order('applied_at', { ascending: false });
 

@@ -29,15 +29,16 @@ interface Candidate {
   applied_at: string;
   candidate_profiles?: {
     id: number;
+    user_id: string;
     headline?: string;
     years_of_experience?: number;
-  };
-  user?: {
-    id: string;
-    full_name?: string;
-    email?: string;
-    phone?: string;
-    avatar_url?: string;
+    profiles?: {
+      id: string;
+      full_name?: string;
+      email?: string;
+      phone?: string;
+      avatar_url?: string;
+    };
   };
 }
 
@@ -121,10 +122,14 @@ export default function CandidateApplyScreen() {
 
   const filteredCandidates = candidates
     .filter((candidate) => {
+      const candidateName = candidate.profiles?.full_name || "Không xác định";
+      const candidateEmail = candidate.profiles?.email || "";
+      const jobTitle = candidate.job_title || "";
+      
       const matchesSearch =
-        candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        candidate.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        candidate.email.toLowerCase().includes(searchQuery.toLowerCase());
+        candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        candidateEmail.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         filterStatus === "all" || candidate.status === filterStatus;
       return matchesSearch && matchesStatus;
@@ -178,10 +183,10 @@ export default function CandidateApplyScreen() {
 
   const CandidateCard = ({ item }: { item: Candidate }) => {
     const statusInfo = getStatusColor(item.status);
-    const candidateName = item.user?.full_name || "Không xác định";
-    const candidateEmail = item.user?.email || "";
-    const candidatePhone = item.user?.phone || "";
-    const candidateAvatar = item.user?.avatar_url || "https://i.pravatar.cc/150?img=1";
+    const candidateName = item.candidate_profiles?.profiles?.full_name || "Không xác định";
+    const candidateEmail = item.candidate_profiles?.profiles?.email || "";
+    const candidatePhone = item.candidate_profiles?.profiles?.phone || "";
+    const candidateAvatar = item.candidate_profiles?.profiles?.avatar_url || "https://i.pravatar.cc/150?img=1";
     const experience = item.candidate_profiles?.years_of_experience || 0;
     const headline = item.candidate_profiles?.headline || "";
 
