@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 export interface JobPosting {
   id?: number;
@@ -22,7 +22,7 @@ export interface Application {
   job_id: number;
   candidate_id: number;
   resume_id?: number;
-  status?: 'applied' | 'reviewing' | 'interviewed' | 'offered' | 'rejected';
+  status?: "applied" | "reviewing" | "interviewed" | "offered" | "rejected";
   applied_at?: string;
 }
 
@@ -37,32 +37,34 @@ export const jobService = {
   }) {
     try {
       let query = supabase
-        .from('jobs')
-        .select('*, companies(*), created_by_employer:employers(*)')
-        .eq('is_active', true);
+        .from("jobs")
+        .select("*, companies(*), created_by_employer:employers(*)")
+        .eq("is_active", true);
 
       if (filters?.title) {
-        query = query.ilike('title', `%${filters.title}%`);
+        query = query.ilike("title", `%${filters.title}%`);
       }
       if (filters?.location) {
-        query = query.ilike('location', `%${filters.location}%`);
+        query = query.ilike("location", `%${filters.location}%`);
       }
       if (filters?.job_type) {
-        query = query.eq('job_type', filters.job_type);
+        query = query.eq("job_type", filters.job_type);
       }
       if (filters?.experience_level) {
-        query = query.eq('experience_level', filters.experience_level);
+        query = query.eq("experience_level", filters.experience_level);
       }
       if (filters?.company_id) {
-        query = query.eq('company_id', filters.company_id);
+        query = query.eq("company_id", filters.company_id);
       }
 
-      const { data, error } = await query.order('published_at', { ascending: false });
+      const { data, error } = await query.order("published_at", {
+        ascending: false,
+      });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get jobs error:', error);
+      console.error("Get jobs error:", error);
       throw error;
     }
   },
@@ -71,22 +73,22 @@ export const jobService = {
   async getJobById(id: number) {
     try {
       const { data, error } = await supabase
-        .from('jobs')
-        .select('*, companies(*)')
-        .eq('id', id)
+        .from("jobs")
+        .select("*, companies(*)")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
 
       // Tăng view count
       await supabase
-        .from('jobs')
+        .from("jobs")
         .update({ view_count: (data.view_count || 0) + 1 })
-        .eq('id', id);
+        .eq("id", id);
 
       return data;
     } catch (error) {
-      console.error('Get job by id error:', error);
+      console.error("Get job by id error:", error);
       throw error;
     }
   },
@@ -95,14 +97,14 @@ export const jobService = {
   async createJob(job: JobPosting) {
     try {
       const { data, error } = await supabase
-        .from('jobs')
+        .from("jobs")
         .insert([job])
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Create job error:', error);
+      console.error("Create job error:", error);
       throw error;
     }
   },
@@ -111,15 +113,15 @@ export const jobService = {
   async updateJob(id: number, job: Partial<JobPosting>) {
     try {
       const { data, error } = await supabase
-        .from('jobs')
+        .from("jobs")
         .update(job)
-        .eq('id', id)
+        .eq("id", id)
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Update job error:', error);
+      console.error("Update job error:", error);
       throw error;
     }
   },
@@ -127,15 +129,12 @@ export const jobService = {
   // Xóa công việc
   async deleteJob(id: number) {
     try {
-      const { error } = await supabase
-        .from('jobs')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("jobs").delete().eq("id", id);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('Delete job error:', error);
+      console.error("Delete job error:", error);
       throw error;
     }
   },
@@ -144,15 +143,15 @@ export const jobService = {
   async getEmployerJobs(employerId: number) {
     try {
       const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('created_by_employer_id', employerId)
-        .order('created_at', { ascending: false });
+        .from("jobs")
+        .select("*")
+        .eq("created_by_employer_id", employerId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get employer jobs error:', error);
+      console.error("Get employer jobs error:", error);
       throw error;
     }
   },
@@ -161,15 +160,15 @@ export const jobService = {
   async getApplications(jobId: number) {
     try {
       const { data, error } = await supabase
-        .from('job_applications')
-        .select('*, candidate_profiles(*, user:profiles(*)), resumes(*)')
-        .eq('job_id', jobId)
-        .order('applied_at', { ascending: false });
+        .from("job_applications")
+        .select("*, candidate_profiles(*, user:profiles(*)), resumes(*)")
+        .eq("job_id", jobId)
+        .order("applied_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get applications error:', error);
+      console.error("Get applications error:", error);
       throw error;
     }
   },
@@ -178,13 +177,13 @@ export const jobService = {
   async applyJob(jobId: number, candidateId: number, resumeId?: number) {
     try {
       const { data, error } = await supabase
-        .from('job_applications')
+        .from("job_applications")
         .insert([
           {
             job_id: jobId,
             candidate_id: candidateId,
             resume_id: resumeId,
-            status: 'applied',
+            status: "applied",
           },
         ])
         .select();
@@ -192,7 +191,7 @@ export const jobService = {
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Apply job error:', error);
+      console.error("Apply job error:", error);
       throw error;
     }
   },
@@ -201,15 +200,15 @@ export const jobService = {
   async updateApplicationStatus(applicationId: number, status: string) {
     try {
       const { data, error } = await supabase
-        .from('job_applications')
+        .from("job_applications")
         .update({ status })
-        .eq('id', applicationId)
+        .eq("id", applicationId)
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Update application status error:', error);
+      console.error("Update application status error:", error);
       throw error;
     }
   },
@@ -218,14 +217,14 @@ export const jobService = {
   async getSkills() {
     try {
       const { data, error } = await supabase
-        .from('skills')
-        .select('*')
-        .order('name', { ascending: true });
+        .from("skills")
+        .select("*")
+        .order("name", { ascending: true });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get skills error:', error);
+      console.error("Get skills error:", error);
       throw error;
     }
   },
@@ -234,15 +233,106 @@ export const jobService = {
   async searchSkills(query: string) {
     try {
       const { data, error } = await supabase
-        .from('skills')
-        .select('*')
-        .ilike('name', `%${query}%`)
+        .from("skills")
+        .select("*")
+        .ilike("name", `%${query}%`)
         .limit(10);
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Search skills error:', error);
+      console.error("Search skills error:", error);
+      throw error;
+    }
+  },
+
+  // Lấy danh sách ứng viên ứng tuyển gần đây cho employer
+  async getRecentApplications(employerId: number, limit: number = 5) {
+    try {
+      const { data: jobs, error: jobError } = await supabase
+        .from("jobs")
+        .select("id")
+        .eq("created_by_employer_id", employerId);
+
+      if (jobError) throw jobError;
+
+      const jobIds = jobs?.map((j) => j.id) || [];
+      if (jobIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from("job_applications")
+        .select(
+          `
+          id,
+          status,
+          applied_at,
+          job_id,
+          jobs(title),
+          candidate_profiles(
+            id,
+            user:profiles(
+              full_name,
+              avatar_url,
+              email
+            )
+          )
+        `
+        )
+        .in("job_id", jobIds)
+        .order("applied_at", { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Get recent applications error:", error);
+      throw error;
+    }
+  },
+
+  // Lấy tất cả ứng viên ứng tuyển cho employer
+  async getAllApplications(employerId: number) {
+    try {
+      const { data: jobs, error: jobError } = await supabase
+        .from("jobs")
+        .select("id")
+        .eq("created_by_employer_id", employerId);
+
+      if (jobError) throw jobError;
+
+      const jobIds = jobs?.map((j) => j.id) || [];
+      if (jobIds.length === 0) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from("job_applications")
+        .select(
+          `
+          id,
+          status,
+          applied_at,
+          job_id,
+          jobs(title),
+          candidate_profiles(
+            id,
+            user:profiles(
+              full_name,
+              avatar_url,
+              email
+            )
+          )
+        `
+        )
+        .in("job_id", jobIds)
+        .order("applied_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Get all applications error:", error);
       throw error;
     }
   },
