@@ -82,6 +82,8 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<
     "overview" | "postings" | "applications"
   >("overview");
+  const [recentApplications, setRecentApplications] = useState<any[]>([]);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -107,6 +109,14 @@ function DashboardContent() {
         // Lấy danh sách công việc
         const jobs = await jobService.getEmployerJobs(employer.id);
         setJobPostings(jobs.slice(0, 3)); // Lấy 3 công việc gần nhất
+
+        // Lấy danh sách ứng viên ứng tuyển gần đây
+        const recent = await jobService.getRecentApplications(employer.id, 5);
+        setRecentApplications(recent);
+
+        // Lấy tất cả ứng viên ứng tuyển
+        const all = await jobService.getAllApplications(employer.id);
+        setAllApplications(all);
       }
     } catch (error) {
       console.error("Error loading dashboard:", error);
@@ -198,32 +208,78 @@ function DashboardContent() {
     },
   ];
 
-  const displayRecentApplications: RecentApplication[] = [
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      position: "React Native Developer",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      appliedDate: "Hôm nay",
-      status: "new",
-    },
-    {
-      id: "2",
-      name: "Trần Thị B",
-      position: "UI/UX Designer",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      appliedDate: "Hôm qua",
-      status: "reviewing",
-    },
-    {
-      id: "3",
-      name: "Lê Văn C",
-      position: "React Native Developer",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      appliedDate: "2 ngày trước",
-      status: "accepted",
-    },
-  ];
+  // Hàm format ngày
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Hôm nay";
+    if (diffDays === 1) return "Hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  // Chuyển đổi dữ liệu từ API sang format hiển thị
+  const displayRecentApps: RecentApplication[] =
+    recentApplications && recentApplications.length > 0
+      ? recentApplications.map((app: any) => ({
+          id: app.id?.toString() || "",
+          name: app.candidate_profiles?.user?.full_name || "Ứng viên",
+          position: app.jobs?.title || "",
+          avatar:
+            app.candidate_profiles?.user?.avatar_url ||
+            "https://i.pravatar.cc/150?img=default",
+          appliedDate: formatDate(app.applied_at),
+          status: (app.status === "pending" || app.status === "applied"
+            ? "new"
+            : app.status) as any,
+        }))
+      : [
+          {
+            id: "1",
+            name: "Nguyễn Văn A",
+            position: "React Native Developer",
+            avatar: "https://i.pravatar.cc/150?img=1",
+            appliedDate: "Hôm nay",
+            status: "new",
+          },
+          {
+            id: "2",
+            name: "Trần Thị B",
+            position: "UI/UX Designer",
+            avatar: "https://i.pravatar.cc/150?img=2",
+            appliedDate: "Hôm qua",
+            status: "reviewing",
+          },
+          {
+            id: "3",
+            name: "Lê Văn C",
+            position: "React Native Developer",
+            avatar: "https://i.pravatar.cc/150?img=3",
+            appliedDate: "2 ngày trước",
+            status: "accepted",
+          },
+        ];
+
+  // Hiển thị tất cả ứng viên ứng tuyển
+  const displayAllApps: RecentApplication[] =
+    allApplications && allApplications.length > 0
+      ? allApplications.map((app: any) => ({
+          id: app.id?.toString() || "",
+          name: app.candidate_profiles?.user?.full_name || "Ứng viên",
+          position: app.jobs?.title || "",
+          avatar:
+            app.candidate_profiles?.user?.avatar_url ||
+            "https://i.pravatar.cc/150?img=default",
+          appliedDate: formatDate(app.applied_at),
+          status: (app.status === "pending" || app.status === "applied"
+            ? "new"
+            : app.status) as any,
+        }))
+      : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -845,7 +901,7 @@ function DashboardContent() {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  {displayRecentApplications.map((app) => (
+                  {displayRecentApps.map((app) => (
                     <ApplicationCard key={app.id} item={app} />
                   ))}
                 </View>
@@ -926,7 +982,7 @@ function DashboardContent() {
                 >
                   Tất cả ứng tuyển
                 </Text>
-                {displayRecentApplications.map((app) => (
+                {displayAllApps.map((app) => (
                   <ApplicationCard key={app.id} item={app} />
                 ))}
               </View>

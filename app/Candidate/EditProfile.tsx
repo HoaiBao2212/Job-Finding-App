@@ -1,7 +1,10 @@
+import { authService } from "@/lib/services/authService";
+import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import {
+  ActivityIndicator,
   Image,
   SafeAreaView,
   ScrollView,
@@ -9,65 +12,258 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { colors } from '../../constants/theme';
+  View,
+} from "react-native";
+import { colors, Fonts } from "../../constants/theme";
 import AlertModal from "../Component/AlertModal";
-import SidebarLayout from '../Component/SidebarLayout';
+import SidebarLayout from "../Component/SidebarLayout";
 import { useAlert } from "../Component/useAlert";
 
-interface ProfileData {
-  fullName: string;
-  email: string;
-  phone: string;
-  jobTitle: string;
-  location: string;
-  bio: string;
-  experience: string;
-  education: string;
-  skills: string;
-  avatar: string;
+interface Skill {
+  id: number;
+  name: string;
+  category: string;
 }
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { alertState, showAlert, hideAlert } = useAlert();
-  const [profile, setProfile] = React.useState<ProfileData>({
-    fullName: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '+84 912 345 678',
-    jobTitle: 'React Native Developer',
-    location: 'TP. Hồ Chí Minh, Việt Nam',
-    bio: 'Lập trình viên React Native với hơn 3 năm kinh nghiệm xây dựng ứng dụng mobile đa nền tảng.',
-    experience: '3+ năm',
-    education: 'Đại học Công nghệ Thông tin',
-    skills: 'React Native, TypeScript, Firebase, REST API',
-    avatar: 'https://i.pravatar.cc/150?img=32',
+
+  // Profile state
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [profile, setProfile] = React.useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    avatar_url: "",
+    location: "",
   });
 
-  const [isSaving, setIsSaving] = React.useState(false);
+  // Candidate profile state
+  const [candidateProfile, setCandidateProfile] = React.useState({
+    id: 0,
+    headline: "",
+    summary: "",
+    years_of_experience: 0,
+    desired_position: "",
+    desired_job_type: "",
+    preferred_locations: "",
+  });
 
-  const handleSave = () => {
-    if (!profile.fullName.trim() || !profile.email.trim()) {
-      showAlert("Lỗi", "Vui lòng điền tên và email");
-      return;
+  // Skills & categories state
+  const [skillCategories] = React.useState([
+    { label: "Frontend", value: "frontend" },
+    { label: "Backend", value: "backend" },
+    { label: "Mobile", value: "mobile" },
+    { label: "Database", value: "database" },
+    { label: "DevOps / Cloud", value: "devops_cloud" },
+    { label: "Data / AI", value: "data_ai" },
+    { label: "Testing / QA", value: "testing" },
+    { label: "Game", value: "game" },
+    { label: "Khác", value: "other" },
+  ]);
+
+  const [selectedCategories, setSelectedCategories] = React.useState<string[]>(
+    []
+  );
+  const [skills, setSkills] = React.useState<Skill[]>([]);
+  const [selectedSkillIds, setSelectedSkillIds] = React.useState<number[]>([]);
+
+  React.useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  React.useEffect(() => {
+    const loadSkills = async () => {
+      if (selectedCategories.length === 0) {
+        setSkills([]);
+        setSelectedSkillIds([]);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from("skills")
+          .select("*")
+          .in("category", selectedCategories);
+
+        setSkills(data || []);
+      } catch (error) {
+        console.error("Error fetching skills:", error);
+      }
+    };
+
+    loadSkills();
+  }, [selectedCategories]);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Load profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData) {
+        setProfile(profileData);
+      }
+
+      // Load candidate profile
+      const { data: candidateData } = await supabase
+        .from("candidate_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (candidateData) {
+        setCandidateProfile(candidateData);
+
+        // Load candidate skills
+        const { data: skillData } = await supabase
+          .from("candidate_skills")
+          .select("skill_id, skills(category)")
+          .eq("candidate_id", candidateData.id);
+
+        if (skillData && skillData.length > 0) {
+          const skillIds = skillData.map((s: any) => s.skill_id);
+          const categories = Array.from(
+            new Set(skillData.map((s: any) => s.skills?.category))
+          ).filter(Boolean) as string[];
+
+          setSelectedSkillIds(skillIds);
+          setSelectedCategories(categories);
+
+          // Load all skills in these categories
+          const { data: allSkills } = await supabase
+            .from("skills")
+            .select("*")
+            .in("category", categories);
+
+          setSkills(allSkills || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      showAlert("Lỗi", "Không thể tải thông tin hồ sơ");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setIsSaving(true);
-    // Simulate saving
-    setTimeout(() => {
-      setIsSaving(false);
-      showAlert("Thành công", "Hồ sơ đã được cập nhập", [
+  const handleSave = async () => {
+    try {
+      if (!profile.full_name.trim() || !profile.email.trim()) {
+        showAlert("Lỗi", "Vui lòng điền tên và email");
+        return;
+      }
+
+      setSaving(true);
+
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profile.full_name,
+          phone: profile.phone,
+          location: profile.location,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      // Update candidate profile
+      if (candidateProfile.id) {
+        const { error: candError } = await supabase
+          .from("candidate_profiles")
+          .update({
+            headline: candidateProfile.headline,
+            summary: candidateProfile.summary,
+            years_of_experience: candidateProfile.years_of_experience,
+            desired_position: candidateProfile.desired_position,
+            desired_job_type: candidateProfile.desired_job_type,
+            preferred_locations: candidateProfile.preferred_locations,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", candidateProfile.id);
+
+        if (candError) throw candError;
+      }
+
+      // Update skills
+      if (candidateProfile.id) {
+        // Delete old skills
+        await supabase
+          .from("candidate_skills")
+          .delete()
+          .eq("candidate_id", candidateProfile.id);
+
+        // Insert new skills
+        if (selectedSkillIds.length > 0) {
+          const skillsToInsert = selectedSkillIds.map((skillId) => ({
+            candidate_id: candidateProfile.id,
+            skill_id: skillId,
+          }));
+
+          const { error: skillError } = await supabase
+            .from("candidate_skills")
+            .insert(skillsToInsert);
+
+          if (skillError) throw skillError;
+        }
+      }
+
+      showAlert("Thành công", "Hồ sơ đã được cập nhật", [
         {
           text: "OK",
-          style: "default",
           onPress: () => {
             hideAlert();
             router.back();
           },
         },
       ]);
-    }, 1500);
+    } catch (error: any) {
+      console.error("Error saving profile:", error);
+      showAlert("Lỗi", "Có lỗi khi lưu hồ sơ: " + error?.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SidebarLayout>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      </SidebarLayout>
+    );
+  }
+
+  const toggleCategory = (value: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]
+    );
   };
 
   const InputField = ({
@@ -78,6 +274,7 @@ export default function EditProfileScreen() {
     multiline = false,
     numberOfLines = 1,
     icon,
+    keyboardType = "default",
   }: {
     label: string;
     value: string;
@@ -86,6 +283,7 @@ export default function EditProfileScreen() {
     multiline?: boolean;
     numberOfLines?: number;
     icon: string;
+    keyboardType?: string;
   }) => (
     <View style={{ marginBottom: 16 }}>
       <View
@@ -102,6 +300,7 @@ export default function EditProfileScreen() {
             fontSize: 13,
             fontWeight: "600",
             color: colors.textDark,
+            fontFamily: Fonts.sans,
           }}
         >
           {label}
@@ -114,6 +313,7 @@ export default function EditProfileScreen() {
         placeholderTextColor={colors.textGray}
         multiline={multiline}
         numberOfLines={numberOfLines}
+        keyboardType={keyboardType as any}
         style={{
           backgroundColor: colors.white,
           borderRadius: 8,
@@ -123,7 +323,7 @@ export default function EditProfileScreen() {
           paddingVertical: multiline ? 12 : 10,
           fontSize: 14,
           color: colors.textDark,
-          fontFamily: "System",
+          fontFamily: Fonts.sans,
         }}
       />
     </View>
@@ -137,6 +337,7 @@ export default function EditProfileScreen() {
         color: colors.textDark,
         marginBottom: 12,
         marginTop: 24,
+        fontFamily: Fonts.sans,
       }}
     >
       {title}
@@ -169,7 +370,12 @@ export default function EditProfileScreen() {
             />
           </TouchableOpacity>
           <Text
-            style={{ fontSize: 18, fontWeight: "600", color: colors.textDark }}
+            style={{
+              fontSize: 18,
+              fontWeight: "600",
+              color: colors.textDark,
+              fontFamily: Fonts.sans,
+            }}
           >
             Chỉnh sửa hồ sơ
           </Text>
@@ -190,17 +396,39 @@ export default function EditProfileScreen() {
               borderBottomColor: colors.borderLight,
             }}
           >
-            <Image
-              source={{ uri: profile.avatar }}
-              style={{
-                width: 100,
-                height: 100,
-                borderRadius: 50,
-                borderWidth: 3,
-                borderColor: colors.primary,
-                marginBottom: 12,
-              }}
-            />
+            {profile.avatar_url ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  borderWidth: 3,
+                  borderColor: colors.primary,
+                  marginBottom: 12,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  borderWidth: 3,
+                  borderColor: colors.primary,
+                  marginBottom: 12,
+                  backgroundColor: colors.primarySoftBg,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="account"
+                  size={50}
+                  color={colors.textGray}
+                />
+              </View>
+            )}
             <TouchableOpacity
               style={{
                 backgroundColor: colors.primary,
@@ -221,6 +449,7 @@ export default function EditProfileScreen() {
                     color: colors.white,
                     fontWeight: "600",
                     fontSize: 13,
+                    fontFamily: Fonts.sans,
                   }}
                 >
                   Thay đổi ảnh
@@ -234,8 +463,8 @@ export default function EditProfileScreen() {
 
           <InputField
             label="Họ và tên"
-            value={profile.fullName}
-            onChangeText={(text) => setProfile({ ...profile, fullName: text })}
+            value={profile.full_name}
+            onChangeText={(text) => setProfile({ ...profile, full_name: text })}
             placeholder="Nhập họ và tên"
             icon="account"
           />
@@ -257,14 +486,6 @@ export default function EditProfileScreen() {
           />
 
           <InputField
-            label="Vị trí công việc"
-            value={profile.jobTitle}
-            onChangeText={(text) => setProfile({ ...profile, jobTitle: text })}
-            placeholder="Nhập vị trí công việc"
-            icon="briefcase"
-          />
-
-          <InputField
             label="Địa điểm"
             value={profile.location}
             onChangeText={(text) => setProfile({ ...profile, location: text })}
@@ -276,42 +497,192 @@ export default function EditProfileScreen() {
           <SectionTitle title="Thông tin chuyên nghiệp" />
 
           <InputField
+            label="Chuyên ngành / Tiêu đề công việc"
+            value={candidateProfile.headline}
+            onChangeText={(text) =>
+              setCandidateProfile({ ...candidateProfile, headline: text })
+            }
+            placeholder="VD: React Native Developer"
+            icon="briefcase"
+          />
+
+          <InputField
             label="Giới thiệu bản thân"
-            value={profile.bio}
-            onChangeText={(text) => setProfile({ ...profile, bio: text })}
-            placeholder="Viết về bản thân bạn"
+            value={candidateProfile.summary}
+            onChangeText={(text) =>
+              setCandidateProfile({ ...candidateProfile, summary: text })
+            }
+            placeholder="Viết về bản thân, kinh nghiệm, thành tích..."
             icon="pencil"
             multiline
             numberOfLines={4}
           />
 
           <InputField
-            label="Kinh nghiệm làm việc"
-            value={profile.experience}
+            label="Vị trí mong muốn"
+            value={candidateProfile.desired_position}
             onChangeText={(text) =>
-              setProfile({ ...profile, experience: text })
+              setCandidateProfile({
+                ...candidateProfile,
+                desired_position: text,
+              })
             }
-            placeholder="Nhập kinh nghiệm"
+            placeholder="VD: Senior Developer, Tech Lead"
+            icon="target"
+          />
+
+          <InputField
+            label="Kinh nghiệm (năm)"
+            value={candidateProfile.years_of_experience.toString()}
+            onChangeText={(text) =>
+              setCandidateProfile({
+                ...candidateProfile,
+                years_of_experience: parseInt(text) || 0,
+              })
+            }
+            placeholder="0"
+            icon="clock-outline"
+            keyboardType="numeric"
+          />
+
+          <InputField
+            label="Loại công việc mong muốn"
+            value={candidateProfile.desired_job_type}
+            onChangeText={(text) =>
+              setCandidateProfile({
+                ...candidateProfile,
+                desired_job_type: text,
+              })
+            }
+            placeholder="VD: Toàn thời gian, Bán thời gian"
             icon="briefcase-outline"
           />
 
           <InputField
-            label="Học vấn"
-            value={profile.education}
-            onChangeText={(text) => setProfile({ ...profile, education: text })}
-            placeholder="Nhập học vấn"
-            icon="school"
+            label="Địa điểm làm việc mong muốn"
+            value={candidateProfile.preferred_locations}
+            onChangeText={(text) =>
+              setCandidateProfile({
+                ...candidateProfile,
+                preferred_locations: text,
+              })
+            }
+            placeholder="VD: TP. Hồ Chí Minh, Hà Nội, Remote"
+            icon="map-marker-multiple"
           />
 
-          <InputField
-            label="Kỹ năng"
-            value={profile.skills}
-            onChangeText={(text) => setProfile({ ...profile, skills: text })}
-            placeholder="Nhập kỹ năng (cách nhau bằng dấu phẩy)"
-            icon="star"
-            multiline
-            numberOfLines={3}
-          />
+          {/* Skills Section */}
+          <SectionTitle title="Kỹ năng" />
+
+          {/* Category Picker */}
+          <View style={{ marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: colors.textDark,
+                marginBottom: 8,
+                fontFamily: Fonts.sans,
+              }}
+            >
+              Chọn danh mục kỹ năng:
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              {skillCategories.map((category) => (
+                <TouchableOpacity
+                  key={category.value}
+                  onPress={() => toggleCategory(category.value)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    backgroundColor: selectedCategories.includes(category.value)
+                      ? colors.primary
+                      : colors.primarySoftBg,
+                    borderWidth: 1,
+                    borderColor: selectedCategories.includes(category.value)
+                      ? colors.primary
+                      : colors.borderLight,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "600",
+                      color: selectedCategories.includes(category.value)
+                        ? colors.white
+                        : colors.textDark,
+                      fontFamily: Fonts.sans,
+                    }}
+                  >
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Skills List */}
+          {skills.length > 0 && (
+            <View style={{ marginBottom: 24 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                  marginBottom: 8,
+                  fontFamily: Fonts.sans,
+                }}
+              >
+                Chọn kỹ năng:
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {skills.map((skill) => (
+                  <TouchableOpacity
+                    key={skill.id}
+                    onPress={() => {
+                      setSelectedSkillIds((prev) =>
+                        prev.includes(skill.id)
+                          ? prev.filter((id) => id !== skill.id)
+                          : [...prev, skill.id]
+                      );
+                    }}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 6,
+                      backgroundColor: selectedSkillIds.includes(skill.id)
+                        ? colors.primary
+                        : colors.primarySoftBg,
+                      borderWidth: 1,
+                      borderColor: selectedSkillIds.includes(skill.id)
+                        ? colors.primary
+                        : colors.borderLight,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "600",
+                        color: selectedSkillIds.includes(skill.id)
+                          ? colors.white
+                          : colors.textDark,
+                        fontFamily: Fonts.sans,
+                      }}
+                    >
+                      {skill.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Action Buttons */}
           <View
@@ -338,6 +709,7 @@ export default function EditProfileScreen() {
                   fontSize: 14,
                   fontWeight: "600",
                   color: colors.primary,
+                  fontFamily: Fonts.sans,
                 }}
               >
                 Hủy
@@ -346,21 +718,20 @@ export default function EditProfileScreen() {
 
             <TouchableOpacity
               onPress={handleSave}
-              disabled={isSaving}
+              disabled={saving}
               style={{
                 flex: 1,
                 paddingVertical: 14,
                 borderRadius: 8,
                 backgroundColor: colors.primary,
                 alignItems: "center",
-                opacity: isSaving ? 0.6 : 1,
+                opacity: saving ? 0.6 : 1,
               }}
             >
-              {isSaving ? (
+              {saving ? (
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons
-                    name="loading"
-                    size={16}
+                  <ActivityIndicator
+                    size="small"
                     color={colors.white}
                     style={{ marginRight: 8 }}
                   />
@@ -369,6 +740,7 @@ export default function EditProfileScreen() {
                       fontSize: 14,
                       fontWeight: "600",
                       color: colors.white,
+                      fontFamily: Fonts.sans,
                     }}
                   >
                     Đang lưu...
@@ -380,6 +752,7 @@ export default function EditProfileScreen() {
                     fontSize: 14,
                     fontWeight: "600",
                     color: colors.white,
+                    fontFamily: Fonts.sans,
                   }}
                 >
                   Lưu thay đổi
@@ -389,13 +762,11 @@ export default function EditProfileScreen() {
           </View>
         </ScrollView>
 
-        {/* Alert Modal */}
         <AlertModal
           visible={alertState.visible}
           title={alertState.title}
           message={alertState.message}
           buttons={alertState.buttons}
-          onDismiss={hideAlert}
         />
       </SafeAreaView>
     </SidebarLayout>

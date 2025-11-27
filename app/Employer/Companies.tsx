@@ -323,9 +323,13 @@ export default function CompaniesScreen() {
 
   const handleUploadLogoLocal = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        showAlert("Quyền bị từ chối", "Vui lòng cấp quyền truy cập thư viện ảnh.");
+        showAlert(
+          "Quyền bị từ chối",
+          "Vui lòng cấp quyền truy cập thư viện ảnh."
+        );
         return;
       }
 
@@ -362,7 +366,10 @@ export default function CompaniesScreen() {
     } catch (error: any) {
       console.error("Error selecting logo:", error);
       hideAlert();
-      showAlert("Lỗi", error?.message || "Không thể chọn ảnh. Vui lòng thử lại.");
+      showAlert(
+        "Lỗi",
+        error?.message || "Không thể chọn ảnh. Vui lòng thử lại."
+      );
     } finally {
       setLoading(false);
     }
@@ -538,13 +545,6 @@ export default function CompaniesScreen() {
             )}
           </View>
           <View style={{ marginBottom: 12, gap: 10 }}>
-            <TextInput
-              style={styles.input}
-              placeholder="URL ảnh logo (không bắt buộc)"
-              placeholderTextColor={colors.textGray}
-              value={logoUrl}
-              onChangeText={setLogoUrl}
-            />
             <TouchableOpacity
               style={{
                 backgroundColor: colors.primary,
@@ -559,7 +559,10 @@ export default function CompaniesScreen() {
               disabled={uploading}
             >
               {uploading ? (
-                <ActivityIndicator color={colors.white} style={{ marginRight: 8 }} />
+                <ActivityIndicator
+                  color={colors.white}
+                  style={{ marginRight: 8 }}
+                />
               ) : (
                 <MaterialCommunityIcons
                   name="cloud-upload"
