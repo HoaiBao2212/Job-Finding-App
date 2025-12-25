@@ -27,6 +27,8 @@ interface Candidate {
   candidate_id: number;
   status: string;
   applied_at: string;
+  interview_id?: number;
+  interview_participant_status?: string;
   candidate_profiles?: {
     id: number;
     user_id: string;
@@ -79,10 +81,43 @@ export default function CandidateApplyScreen() {
         for (const job of jobs) {
           const apps = await jobService.getApplications(job.id);
           // Thêm job_title vào mỗi application
-          const appsWithJobTitle = apps.map((app: any) => ({
+          let appsWithJobTitle = apps.map((app: any) => ({
             ...app,
             job_title: job.title,
           }));
+
+          // Fetch interview_participant_status for applications with status = 'interview'
+          appsWithJobTitle = await Promise.all(
+            appsWithJobTitle.map(async (app: any) => {
+              if (app.status === "interview" && app.id) {
+                try {
+                  const { data: interviewParticipant, error } = await (
+                    await import("../../lib/supabase")
+                  ).supabase
+                    .from("interview_participants")
+                    .select("participant_status, interview_id")
+                    .eq("application_id", app.id)
+                    .single();
+
+                  if (interviewParticipant) {
+                    return {
+                      ...app,
+                      interview_participant_status:
+                        interviewParticipant.participant_status,
+                      interview_id: interviewParticipant.interview_id,
+                    };
+                  }
+                } catch (error) {
+                  console.error(
+                    "Error fetching interview participant status:",
+                    error
+                  );
+                }
+              }
+              return app;
+            })
+          );
+
           allApplications.push(...appsWithJobTitle);
         }
         setCandidates(allApplications);
@@ -110,6 +145,23 @@ export default function CandidateApplyScreen() {
         return { bg: "#FFF1F0", text: "#FF7875", label: "Từ chối" };
       default:
         return { bg: "#F5F5F5", text: "#8C8C8C", label: "Khác" };
+    }
+  };
+
+  const getParticipantStatusColor = (status: string | undefined) => {
+    switch (status) {
+      case "invited":
+        return { bg: "#FFF3E0", text: "#F57C00", label: "Mời phỏng vấn" };
+      case "confirmed":
+        return { bg: "#E8F5E9", text: "#388E3C", label: "Đã xác nhận" };
+      case "declined":
+        return { bg: "#FFEBEE", text: "#D32F2F", label: "Từ chối phỏng vấn" };
+      case "no_show":
+        return { bg: "#F5F5F5", text: "#616161", label: "Không đến" };
+      case "pending":
+        return { bg: "#FFF3E0", text: "#F57C00", label: "Chờ xử lý" };
+      default:
+        return { bg: "#F5F5F5", text: "#8C8C8C", label: "Chưa xác định" };
     }
   };
 
@@ -185,7 +237,11 @@ export default function CandidateApplyScreen() {
   };
 
   const CandidateCard = ({ item }: { item: Candidate }) => {
-    const statusInfo = getStatusColor(item.status);
+    // Use participant status if interview status, otherwise use application status
+    const statusInfo =
+      item.status === "interview" && item.interview_participant_status
+        ? getParticipantStatusColor(item.interview_participant_status)
+        : getStatusColor(item.status);
     const candidateName =
       item.candidate_profiles?.profiles?.full_name || "Không xác định";
     const candidateEmail = item.candidate_profiles?.profiles?.email || "";

@@ -137,8 +137,7 @@ export default function CandidateDetailProfileScreen() {
           email: userProfile?.email || "",
           phone: userProfile?.phone || "",
           avatar_url:
-            userProfile?.avatar_url ||
-            "https://i.pravatar.cc/150?img=default",
+            userProfile?.avatar_url || "https://i.pravatar.cc/150?img=default",
           location: userProfile?.location || "",
           headline: candProfile.headline || "",
           summary: candProfile.summary || "",
@@ -189,9 +188,7 @@ export default function CandidateDetailProfileScreen() {
           <View
             style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
           >
-            <Text style={{ color: colors.textGray }}>
-              Không tìm thấy hồ sơ
-            </Text>
+            <Text style={{ color: colors.textGray }}>Không tìm thấy hồ sơ</Text>
           </View>
         </SafeAreaView>
       </EmployerSidebarLayout>
@@ -526,7 +523,9 @@ export default function CandidateDetailProfileScreen() {
                 }}
               >
                 {candidate.headline && (
-                  <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+                  <View
+                    style={{ flexDirection: "row", alignItems: "flex-start" }}
+                  >
                     <MaterialCommunityIcons
                       name="briefcase-outline"
                       size={16}
@@ -1004,7 +1003,8 @@ export default function CandidateDetailProfileScreen() {
                           {edu.start_date
                             ? new Date(edu.start_date).getFullYear()
                             : ""}{" "}
-                          - {edu.end_date
+                          -{" "}
+                          {edu.end_date
                             ? new Date(edu.end_date).getFullYear()
                             : ""}
                         </Text>

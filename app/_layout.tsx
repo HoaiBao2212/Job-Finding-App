@@ -24,10 +24,7 @@ export default function RootLayout() {
         name="Candidate/Schedule"
         options={{ title: "Lịch phỏng vấn" }}
       />
-      <Stack.Screen
-        name="Candidate/Account"
-        options={{ title: "Tài khoản" }}
-      />
+      <Stack.Screen name="Candidate/Account" options={{ title: "Tài khoản" }} />
       <Stack.Screen
         name="Candidate/EditProfile"
         options={{ title: "Chỉnh sửa hồ sơ" }}
@@ -48,17 +45,27 @@ export default function RootLayout() {
         name="Employer/JobPosting"
         options={{ title: "Đăng tin tuyển dụng" }}
       />
-      <Stack.Screen
-        name="Employer/Account"
-        options={{ title: "Tài khoản" }}
-      />
+      <Stack.Screen name="Employer/Account" options={{ title: "Tài khoản" }} />
       <Stack.Screen
         name="Employer/JobDetail"
         options={{ title: "Chi tiết công việc" }}
-      /><Stack.Screen
+      />
+      <Stack.Screen
         name="Employer/Companies"
         options={{ title: "Chi tiết công ty" }}
+      />{" "}
+      <Stack.Screen
+        name="Employer/InterviewSchedule"
+        options={{ title: "Lịch phỏng vấn" }}
       />
+      <Stack.Screen
+        name="Employer/InterviewScheduleDetail"
+        options={{ title: "Chi tiết phỏng vấn" }}
+      />
+      <Stack.Screen
+        name="Employer/InterviewCandidateDetail"
+        options={{ title: "Chi tiết ứng viên phỏng vấn" }}
+      />{" "}
     </Stack>
   );
 }

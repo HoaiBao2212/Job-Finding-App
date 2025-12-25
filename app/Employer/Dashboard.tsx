@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -138,7 +138,13 @@ function DashboardContent() {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, [])
+  );
+
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const user = await authService.getCurrentUser();
@@ -184,7 +190,7 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const defaultStats: StatCard[] = [
     {

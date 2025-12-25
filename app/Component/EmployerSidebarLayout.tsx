@@ -55,6 +55,16 @@ const MENU_ITEMS: MenuItem[] = [
     route: "/Employer/CandidateApply",
   },
   {
+    icon: "calendar-check",
+    label: "Xếp lịch phỏng vấn",
+    route: "/Employer/InterviewScheduling",
+  },
+  {
+    icon: "calendar",
+    label: "Lịch phỏng vấn",
+    route: "/Employer/InterviewSchedule",
+  },
+  {
     icon: "office-building",
     label: "Công ty",
     route: "/Employer/CompanyDetail",
