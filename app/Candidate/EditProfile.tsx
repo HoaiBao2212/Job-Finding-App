@@ -226,6 +226,7 @@ export default function EditProfileScreen() {
           const skillsToInsert = selectedSkillIds.map((skillId) => ({
             candidate_id: candidateProfile.id,
             skill_id: skillId,
+            
           }));
 
           const { error: skillError } = await supabase

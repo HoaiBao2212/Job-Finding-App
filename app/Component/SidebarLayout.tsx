@@ -1,4 +1,5 @@
 import { authService } from "@/lib/services/authService";
+import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import React, { createContext, useContext, useState } from "react";
@@ -54,8 +55,34 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [fullName, setFullName] = useState<string>("Người dùng");
   const sidebarAnimation = React.useRef(new Animated.Value(0)).current;
   const { alertState, showAlert, hideAlert } = useAlert();
+
+  // Fetch user full name
+  React.useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .single();
+
+          if (error) throw error;
+          if (data?.full_name) {
+            setFullName(data.full_name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const toggleSidebar = () => {
     const toValue = isOpen ? 0 : 1;
@@ -173,7 +200,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                   color: colors.textDark,
                 }}
               >
-                Việc Làm
+                Xin chào {fullName}
               </Text>
             </View>
 

@@ -8,9 +8,8 @@ import {
   ScrollView,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
@@ -103,7 +102,12 @@ function JobFindingContent() {
       filtered = filtered.filter((job) => job.job_type === selectedFilter);
     }
 
-    setFilteredJobs(filtered);
+    // Sort by view_count in descending order and take top 5
+    const topJobs = filtered
+      .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+      .slice(0, 5);
+
+    setFilteredJobs(topJobs);
   }, [searchText, selectedFilter, jobs]);
 
   const formatSalary = (min?: number, max?: number, currency?: string) => {
@@ -319,6 +323,8 @@ function JobFindingContent() {
               height: 50,
               justifyContent: "center",
               alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
             }}
           >
             <MaterialCommunityIcons
@@ -326,63 +332,10 @@ function JobFindingContent() {
               size={28}
               color={colors.white}
             />
-            <View
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                width: 16,
-                height: 16,
-                borderRadius: 8,
-                backgroundColor: "#FF6B6B",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.white,
-                  fontSize: 10,
-                  fontWeight: "700",
-                }}
-              >
-                2
-              </Text>
-            </View>
+            
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar in Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: colors.white,
-            borderRadius: 12,
-            paddingHorizontal: 12,
-            borderWidth: 1,
-            borderColor: colors.borderLight,
-          }}
-        >
-          <MaterialCommunityIcons
-            name="magnify"
-            size={20}
-            color={colors.primary}
-          />
-          <TextInput
-            placeholder="Tìm kiếm công việc..."
-            placeholderTextColor={colors.textGray}
-            value={searchText}
-            onChangeText={setSearchText}
-            style={{
-              flex: 1,
-              paddingVertical: 12,
-              paddingHorizontal: 8,
-              fontSize: 14,
-              color: colors.textDark,
-            }}
-          />
-        </View>
       </View>
 
       <ScrollView
@@ -394,75 +347,8 @@ function JobFindingContent() {
 
         {/* Content Container with padding */}
         <View style={{ paddingHorizontal: 16 }}>
-          {/* Filter Tags */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginBottom: 24 }}
-          >
-            <TouchableOpacity
-              onPress={() => setSelectedFilter("all")}
-              style={{
-                backgroundColor:
-                  selectedFilter === "all" ? colors.primary : colors.white,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                marginRight: 12,
-                borderWidth: selectedFilter === "all" ? 0 : 1,
-                borderColor: colors.borderLight,
-              }}
-            >
-              <Text
-                style={{
-                  color:
-                    selectedFilter === "all" ? colors.white : colors.textDark,
-                  fontWeight: "500",
-                  fontSize: 13,
-                  fontFamily: Fonts.sans,
-                }}
-              >
-                Tất cả
-              </Text>
-            </TouchableOpacity>
-            {[
-              { label: "Remote", value: "remote" },
-              { label: "Thực tập", value: "internship" },
-              { label: "Toàn thời gian", value: "full-time" },
-              { label: "Bán thời gian", value: "part-time" },
-            ].map((filter) => (
-              <TouchableOpacity
-                key={filter.value}
-                onPress={() => setSelectedFilter(filter.value)}
-                style={{
-                  backgroundColor:
-                    selectedFilter === filter.value
-                      ? colors.primary
-                      : colors.white,
-                  borderWidth: selectedFilter === filter.value ? 0 : 1,
-                  borderColor: colors.borderLight,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  marginRight: 12,
-                }}
-              >
-                <Text
-                  style={{
-                    color:
-                      selectedFilter === filter.value
-                        ? colors.white
-                        : colors.textDark,
-                    fontWeight: "500",
-                    fontSize: 13,
-                    fontFamily: Fonts.sans,
-                  }}
-                >
-                  {filter.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          
+          
 
           {/* Featured Jobs Section */}
           <View style={{ marginBottom: 24 }}>
@@ -471,6 +357,7 @@ function JobFindingContent() {
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
+                marginTop: 24,
                 marginBottom: 16,
               }}
             >
@@ -484,7 +371,7 @@ function JobFindingContent() {
               >
                 Công việc nổi bật
               </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/Candidate/JobSearchScreen")}>
                 <Text
                   style={{
                     fontSize: 13,

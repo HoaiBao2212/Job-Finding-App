@@ -1,7 +1,11 @@
 import { theme } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,69 +14,170 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../../constants/theme";
+import SidebarLayout, { useSidebar } from "../Component/SidebarLayout";
 type Job = {
-  id: string;
+  id: string | number;
   title: string;
   company: string;
   location: string;
   salaryRange?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
   type: "Toàn thời gian" | "Bán thời gian" | "Thực tập" | "Remote";
+  job_type?: string;
   postedTime: string;
+  created_at?: string;
   tags: string[];
 };
 
-const mockJobs: Job[] = [
-  {
-    id: "1",
-    title: "React Native Developer",
-    company: "Công ty TNHH ABC",
-    location: "Hà Nội",
-    salaryRange: "20 - 30 triệu",
-    type: "Toàn thời gian",
-    postedTime: "2 ngày trước",
-    tags: ["React Native", "TypeScript", "Mobile"],
-  },
-  {
-    id: "2",
-    title: "Frontend Developer (React)",
-    company: "XYZ Technology",
-    location: "TP. Hồ Chí Minh",
-    salaryRange: "15 - 25 triệu",
-    type: "Remote",
-    postedTime: "Hôm nay",
-    tags: ["ReactJS", "JavaScript", "Remote"],
-  },
-  {
-    id: "3",
-    title: "Thực tập sinh Lập trình",
-    company: "Start-up 123",
-    location: "Đà Nẵng",
-    type: "Thực tập",
-    postedTime: "3 ngày trước",
-    tags: ["Intern", "Web", "Backend"],
-  },
-];
+const getJobTypeDisplay = (jobType: string | null | undefined): Job["type"] => {
+  const typeMap: Record<string, Job["type"]> = {
+    "full-time": "Toàn thời gian",
+    "part-time": "Bán thời gian",
+    "internship": "Thực tập",
+    "remote": "Remote",
+  };
+  return typeMap[jobType?.toLowerCase() || ""] || "Toàn thời gian";
+};
 
-const jobTypes: Job["type"][] = [
-  "Toàn thời gian",
-  "Bán thời gian",
-  "Thực tập",
-  "Remote",
-];
-
-const locations = ["Tất cả", "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng"];
+const getJobTypeKey = (displayType: Job["type"]): string => {
+  const typeMap: Record<Job["type"], string> = {
+    "Toàn thời gian": "full-time",
+    "Bán thời gian": "part-time",
+    "Thực tập": "internship",
+    "Remote": "remote",
+  };
+  return typeMap[displayType];
+};
 
 const sortOptions = ["Mới nhất", "Lương cao nhất", "Phù hợp nhất"];
 
+export default function JobSearchScreenWrapper() {
+  return (
+    <SidebarLayout>
+      <JobSearchScreen />
+    </SidebarLayout>
+  );
+}
+
 const JobSearchScreen: React.FC = () => {
+  const { toggleSidebar } = useSidebar();
   const [keyword, setKeyword] = useState("");
   const [selectedJobType, setSelectedJobType] = useState<Job["type"] | null>(
     null
   );
   const [selectedLocation, setSelectedLocation] = useState<string>("Tất cả");
   const [selectedSort, setSelectedSort] = useState<string>("Mới nhất");
+  const [allJobs, setAllJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [locations, setLocations] = useState<string[]>(["Tất cả"]);
+  const [jobTypes, setJobTypes] = useState<Job["type"][]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [expandedLocation, setExpandedLocation] = useState(false);
+  const [expandedJobType, setExpandedJobType] = useState(false);
+  const [selectedExperienceLevel, setSelectedExperienceLevel] = useState<string | null>(null);
+  const [experienceLevels, setExperienceLevels] = useState<string[]>([]);
+  const [expandedExperienceLevel, setExpandedExperienceLevel] = useState(false);
+  const [salary, setSalary] = useState<string>("");
 
-  const filteredJobs = mockJobs.filter((job) => {
+  // Fetch jobs from Supabase
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("jobs")
+          .select(
+            `
+            id,
+            title,
+            location,
+            salary_min,
+            salary_max,
+            salary_currency,
+            job_type,
+            experience_level,
+            created_at,
+            companies(name)
+          `
+          )
+          .eq("is_active", true);
+
+        if (error) throw error;
+
+        // Transform data
+        const jobsData = (data || []).map((job: any) => {
+          const salary = job.salary_min && job.salary_max 
+            ? `${job.salary_min} - ${job.salary_max} ${job.salary_currency || "VND"}`
+            : undefined;
+
+          return {
+            id: job.id,
+            title: job.title,
+            company: job.companies?.name || "Công ty",
+            location: job.location || "Không xác định",
+            salaryRange: salary,
+            salary_min: job.salary_min,
+            salary_max: job.salary_max,
+            salary_currency: job.salary_currency,
+            type: getJobTypeDisplay(job.job_type),
+            job_type: job.job_type,
+            experience_level: job.experience_level,
+            postedTime: formatPostedTime(job.created_at),
+            created_at: job.created_at,
+            tags: [],
+          };
+        });
+
+        setAllJobs(jobsData);
+
+        // Extract unique locations
+        const uniqueLocations = ["Tất cả", ...new Set(jobsData.map(j => j.location))];
+        setLocations(uniqueLocations as string[]);
+
+        // Extract unique job types
+        const uniqueJobTypes = [...new Set(jobsData.map(j => j.type))].filter(
+          (type) => type !== undefined
+        ) as Job["type"][];
+        setJobTypes(uniqueJobTypes);
+
+        // Extract unique experience levels
+        const uniqueExperienceLevels = [...new Set(jobsData.map((j: any) => j.experience_level))].filter(
+          (level) => level !== null && level !== undefined
+        ) as string[];
+        setExperienceLevels(uniqueExperienceLevels);
+      } catch (error) {
+        console.error("Error loading jobs:", error);
+        setAllJobs([]);
+        setLocations(["Tất cả"]);
+        setJobTypes([]);
+        setExperienceLevels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobs();
+  }, []);
+
+  const formatPostedTime = (createdAt: string | undefined): string => {
+    if (!createdAt) return "Gần đây";
+    
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now.getTime() - created.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Hôm nay";
+    if (diffDays === 1) return "1 ngày trước";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return `${Math.floor(diffDays / 30)} tháng trước`;
+  };
+
+  const filteredJobs = allJobs.filter((job: any) => {
     const matchKeyword =
       keyword.trim().length === 0 ||
       job.title.toLowerCase().includes(keyword.toLowerCase()) ||
@@ -83,11 +188,115 @@ const JobSearchScreen: React.FC = () => {
     const matchLocation =
       selectedLocation === "Tất cả" || job.location === selectedLocation;
 
-    return matchKeyword && matchJobType && matchLocation;
+    const matchExperienceLevel =
+      !selectedExperienceLevel || job.experience_level === selectedExperienceLevel;
+
+    // Check if salary is within job's salary range
+    let matchSalary = true;
+    if (salary.trim() !== "") {
+      const salaryInput = parseInt(salary);
+      if (!isNaN(salaryInput) && job.salary_min && job.salary_max) {
+        matchSalary = salaryInput >= job.salary_min && salaryInput <= job.salary_max;
+      } else if (!isNaN(salaryInput)) {
+        matchSalary = false;
+      }
+    }
+
+    return matchKeyword && matchJobType && matchLocation && matchExperienceLevel && matchSalary;
   });
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Modern Header Bar */}
+      <View
+        style={{
+          backgroundColor: colors.primary,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          gap: 12,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 3,
+          elevation: 4,
+        }}
+      >
+        {/* Header Top - Logo and Sidebar Toggle */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {/* Sidebar Toggle Button - Left Side */}
+          <TouchableOpacity
+            onPress={toggleSidebar}
+            style={{
+              width: 50,
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="menu"
+              size={28}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
+            <MaterialCommunityIcons
+              name="briefcase"
+              size={28}
+              color={colors.white}
+              style={{ marginRight: 12 }}
+            />
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "700",
+                color: colors.white,
+              }}
+            >
+              New job today
+            </Text>
+          </View>
+
+          {/* Notification Button - Right Side */}
+          <TouchableOpacity
+            style={{
+              width: 50,
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="bell"
+              size={28}
+              color={colors.white}
+            />
+            
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.container}>
         {/* Thanh tìm kiếm */}
         <View style={styles.searchContainer}>
@@ -99,13 +308,16 @@ const JobSearchScreen: React.FC = () => {
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Nhập vị trí, kỹ năng, công ty..."
+              placeholder="Nhập công việc, công ty, địa điểm..."
               placeholderTextColor={theme.text.subtle}
               value={keyword}
               onChangeText={setKeyword}
             />
           </View>
-          <TouchableOpacity style={styles.filterButton}>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilterModal(true)}
+          >
             <Ionicons
               name="options-outline"
               size={20}
@@ -114,84 +326,9 @@ const JobSearchScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* NÚT TOÀN THỜI GIAN / BÁN THỜI GIAN / THỰC TẬP / REMOTE */}
-        <View style={styles.jobTypeRow}>
-          {jobTypes.map((type, index) => {
-            const isActive = selectedJobType === type;
-            return (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.jobTypeButton,
-                  isActive && styles.jobTypeButtonActive,
-                  index === jobTypes.length - 1 && { marginRight: 0 },
-                ]}
-                onPress={() => setSelectedJobType(isActive ? null : type)}
-              >
-                <Text
-                  style={[
-                    styles.jobTypeButtonText,
-                    isActive && styles.jobTypeButtonTextActive,
-                  ]}
-                >
-                  {type}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        
 
-        {/* Địa điểm + sắp xếp */}
-        <View style={styles.filterRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.locationScroll}
-          >
-            {locations.map((loc) => {
-              const isActive = selectedLocation === loc;
-              return (
-                <TouchableOpacity
-                  key={loc}
-                  style={[
-                    styles.locationChip,
-                    isActive && styles.locationChipActive,
-                  ]}
-                  onPress={() => setSelectedLocation(loc)}
-                >
-                  <Ionicons
-                    name="location-outline"
-                    size={14}
-                    color={isActive ? theme.colors.primary : theme.text.subtle}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text
-                    style={[
-                      styles.locationChipText,
-                      isActive && styles.locationChipTextActive,
-                    ]}
-                  >
-                    {loc}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <TouchableOpacity style={styles.sortButton}>
-            <Ionicons
-              name="filter-outline"
-              size={16}
-              color={theme.text.subtle}
-            />
-            <Text style={styles.sortButtonText}>{selectedSort}</Text>
-            <Ionicons
-              name="chevron-down-outline"
-              size={16}
-              color={theme.text.subtle}
-            />
-          </TouchableOpacity>
-        </View>
+        
 
         {/* Kết quả */}
         <Text style={styles.resultCount}>
@@ -261,7 +398,10 @@ const JobSearchScreen: React.FC = () => {
               </View>
 
               <View style={styles.cardFooter}>
-                <TouchableOpacity style={styles.applyButton}>
+                <TouchableOpacity 
+                  style={styles.applyButton}
+                  onPress={() => router.push(`/Candidate/JobDetail?id=${job.id}`)}
+                >
                   <Text style={styles.applyButtonText}>Ứng tuyển ngay</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveButton}>
@@ -292,11 +432,267 @@ const JobSearchScreen: React.FC = () => {
           )}
         </ScrollView>
       </View>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Bộ lọc</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Ionicons name="close-outline" size={24} color={theme.text.heading} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Filter Options */}
+            <ScrollView style={styles.modalBody}>
+              {/* Location Dropdown */}
+              <View style={styles.filterGroup}>
+                <TouchableOpacity
+                  style={styles.dropdownHeader}
+                  onPress={() => setExpandedLocation(!expandedLocation)}
+                >
+                  <View style={styles.dropdownHeaderContent}>
+                    <Text style={styles.dropdownHeaderTitle}>Địa điểm</Text>
+                    <Text style={styles.dropdownHeaderValue}>{selectedLocation}</Text>
+                  </View>
+                  <Ionicons
+                    name={expandedLocation ? "chevron-up-outline" : "chevron-down-outline"}
+                    size={20}
+                    color={theme.text.subtle}
+                  />
+                </TouchableOpacity>
+                
+                {expandedLocation && (
+                  <View style={styles.dropdownOptions}>
+                    {locations.map((location) => (
+                      <TouchableOpacity
+                        key={location}
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setSelectedLocation(location);
+                          setExpandedLocation(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.dropdownOptionText,
+                            selectedLocation === location && styles.dropdownOptionTextActive,
+                          ]}
+                        >
+                          {location}
+                        </Text>
+                        {selectedLocation === location && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={20}
+                            color={theme.colors.primary}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Job Type Dropdown */}
+              <View style={styles.filterGroup}>
+                <TouchableOpacity
+                  style={styles.dropdownHeader}
+                  onPress={() => setExpandedJobType(!expandedJobType)}
+                >
+                  <View style={styles.dropdownHeaderContent}>
+                    <Text style={styles.dropdownHeaderTitle}>Loại công việc</Text>
+                    <Text style={styles.dropdownHeaderValue}>
+                      {selectedJobType || "Tất cả"}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={expandedJobType ? "chevron-up-outline" : "chevron-down-outline"}
+                    size={20}
+                    color={theme.text.subtle}
+                  />
+                </TouchableOpacity>
+                
+                {expandedJobType && (
+                  <View style={styles.dropdownOptions}>
+                    <TouchableOpacity
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        setSelectedJobType(null);
+                        setExpandedJobType(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.dropdownOptionText,
+                          !selectedJobType && styles.dropdownOptionTextActive,
+                        ]}
+                      >
+                        Tất cả
+                      </Text>
+                      {!selectedJobType && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color={theme.colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    {jobTypes.map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setSelectedJobType(type);
+                          setExpandedJobType(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.dropdownOptionText,
+                            selectedJobType === type && styles.dropdownOptionTextActive,
+                          ]}
+                        >
+                          {type}
+                        </Text>
+                        {selectedJobType === type && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={20}
+                            color={theme.colors.primary}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Experience Level Dropdown */}
+              <View style={styles.filterGroup}>
+                <TouchableOpacity
+                  style={styles.dropdownHeader}
+                  onPress={() => setExpandedExperienceLevel(!expandedExperienceLevel)}
+                >
+                  <View style={styles.dropdownHeaderContent}>
+                    <Text style={styles.dropdownHeaderTitle}>Trình độ kinh nghiệm</Text>
+                    <Text style={styles.dropdownHeaderValue}>
+                      {selectedExperienceLevel || "Tất cả"}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={expandedExperienceLevel ? "chevron-up-outline" : "chevron-down-outline"}
+                    size={20}
+                    color={theme.text.subtle}
+                  />
+                </TouchableOpacity>
+                
+                {expandedExperienceLevel && (
+                  <View style={styles.dropdownOptions}>
+                    <TouchableOpacity
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        setSelectedExperienceLevel(null);
+                        setExpandedExperienceLevel(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.dropdownOptionText,
+                          !selectedExperienceLevel && styles.dropdownOptionTextActive,
+                        ]}
+                      >
+                        Tất cả
+                      </Text>
+                      {!selectedExperienceLevel && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color={theme.colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    {experienceLevels.map((level) => (
+                      <TouchableOpacity
+                        key={level}
+                        style={styles.dropdownOption}
+                        onPress={() => {
+                          setSelectedExperienceLevel(level);
+                          setExpandedExperienceLevel(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.dropdownOptionText,
+                            selectedExperienceLevel === level && styles.dropdownOptionTextActive,
+                          ]}
+                        >
+                          {level === "junior"
+                            ? "Thực tập sinh / Lập trình viên mới"
+                            : level === "mid"
+                            ? "Lập trình viên có kinh nghiệm"
+                            : "Lập trình viên chuyên gia"}
+                        </Text>
+                        {selectedExperienceLevel === level && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={20}
+                            color={theme.colors.primary}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Salary Input */}
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Mức lương mong muốn (VND)</Text>
+                <TextInput
+                  style={styles.salaryInput}
+                  placeholder="Nhập mức lương..."
+                  placeholderTextColor={theme.text.subtle}
+                  keyboardType="numeric"
+                  value={salary}
+                  onChangeText={setSalary}
+                />
+              </View>
+            </ScrollView>
+
+            {/* Footer Buttons */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => {
+                  setSelectedLocation("Tất cả");
+                  setSelectedJobType(null);
+                  setSelectedExperienceLevel(null);
+                  setSalary("");
+                }}
+              >
+                <Text style={styles.resetButtonText}>Đặt lại</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyFilterButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.applyFilterButtonText}>Áp dụng</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
-
-export default JobSearchScreen;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -554,5 +950,157 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.text.subtle,
     textAlign: "center",
+  },
+
+  // MODAL STYLES
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
+    paddingTop: 0,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.text.heading,
+  },
+  modalBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  filterGroup: {
+    marginBottom: 24,
+  },
+  filterGroupTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.text.heading,
+    marginBottom: 12,
+  },
+  filterOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  filterOptionContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: theme.text.body,
+  },
+
+  // DROPDOWN STYLES
+  dropdownHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: theme.background.soft,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+  },
+  dropdownHeaderContent: {
+    flex: 1,
+  },
+  dropdownHeaderTitle: {
+    fontSize: 12,
+    color: theme.text.subtle,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  dropdownHeaderValue: {
+    fontSize: 14,
+    color: theme.text.heading,
+    fontWeight: "600",
+  },
+  dropdownOptions: {
+    marginTop: 8,
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    overflow: "hidden",
+  },
+  dropdownOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: theme.text.body,
+  },
+  dropdownOptionTextActive: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  salaryInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    borderRadius: 8,
+    fontSize: 14,
+    color: theme.text.body,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderLight,
+    gap: 12,
+  },
+  resetButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resetButtonText: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  applyFilterButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  applyFilterButtonText: {
+    color: theme.colors.white,
+    fontWeight: "600",
+    fontSize: 14,
   },
 });

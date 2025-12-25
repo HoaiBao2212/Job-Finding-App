@@ -1,8 +1,10 @@
+import { authService } from "@/lib/services/authService";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StatusBar,
@@ -29,14 +31,58 @@ interface UserAccount {
 export default function AccountScreen() {
   const router = useRouter();
   const { alertState, showAlert, hideAlert } = useAlert();
+  const [loading, setLoading] = React.useState(true);
   const [user, setUser] = React.useState<UserAccount>({
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@example.com",
-    phone: "+84 912 345 678",
-    avatar: "https://i.pravatar.cc/150?img=32",
-    joinDate: "15/01/2024",
-    verificationStatus: "verified",
+    name: "",
+    email: "",
+    phone: "",
+    avatar: "",
+    joinDate: "",
+    verificationStatus: "unverified",
   });
+
+  React.useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const currentUser = await authService.getCurrentUser();
+
+      if (!currentUser) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Fetch user profile from Supabase
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, email, phone, avatar_url, created_at")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (profileData) {
+        // Format join date
+        const joinDate = new Date(profileData.created_at);
+        const formattedJoinDate = `${joinDate.getDate()}/${joinDate.getMonth() + 1}/${joinDate.getFullYear()}`;
+
+        setUser({
+          name: profileData.full_name || "Người dùng",
+          email: profileData.email || "",
+          phone: profileData.phone || "Chưa cập nhật",
+          avatar: profileData.avatar_url || "https://i.pravatar.cc/150?u=" + currentUser.id,
+          joinDate: formattedJoinDate,
+          verificationStatus: "verified",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      showAlert("Lỗi", "Không thể tải thông tin người dùng");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [notifications, setNotifications] = React.useState({
     email: true,
@@ -237,6 +283,24 @@ export default function AccountScreen() {
       <Switch value={value} onValueChange={onToggle} />
     </View>
   );
+
+  if (loading) {
+    return (
+      <SidebarLayout>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      </SidebarLayout>
+    );
+  }
 
   return (
     <SidebarLayout>
