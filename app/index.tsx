@@ -3,7 +3,8 @@ import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, SafeAreaView, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
   const [checking, setChecking] = useState(true);

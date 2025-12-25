@@ -4,18 +4,18 @@ import { useRouter } from "expo-router";
 import * as React from "react";
 import {
   Image,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Switch,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { colors } from '../../constants/theme';
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../../constants/theme";
 import AlertModal from "../Component/AlertModal";
-import SidebarLayout from '../Component/SidebarLayout';
-import { useAlert } from "../Component/useAlert";
+import SidebarLayout from "../Component/SidebarLayout";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface UserAccount {
   name: string;
@@ -30,12 +30,12 @@ export default function AccountScreen() {
   const router = useRouter();
   const { alertState, showAlert, hideAlert } = useAlert();
   const [user, setUser] = React.useState<UserAccount>({
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phone: '+84 912 345 678',
-    avatar: 'https://i.pravatar.cc/150?img=32',
-    joinDate: '15/01/2024',
-    verificationStatus: 'verified',
+    name: "Nguyễn Văn A",
+    email: "nguyenvana@example.com",
+    phone: "+84 912 345 678",
+    avatar: "https://i.pravatar.cc/150?img=32",
+    joinDate: "15/01/2024",
+    verificationStatus: "verified",
   });
 
   const [notifications, setNotifications] = React.useState({

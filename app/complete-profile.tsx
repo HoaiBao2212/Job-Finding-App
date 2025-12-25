@@ -1,5 +1,5 @@
 import AlertModal from "@/app/Component/AlertModal";
-import { useAlert } from "@/app/Component/useAlert";
+import { useAlert } from "@/app/Component/useAlert.hook";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";

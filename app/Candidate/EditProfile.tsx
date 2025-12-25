@@ -6,7 +6,6 @@ import * as React from "react";
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
@@ -14,10 +13,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
 import AlertModal from "../Component/AlertModal";
 import SidebarLayout from "../Component/SidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface Skill {
   id: number;
@@ -384,7 +384,7 @@ export default function EditProfileScreen() {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          style={{ flex: 1, paddingHorizontal: 16, paddingTop: 20 }}
+          style={{ flex: 1, paddingHorizontal: 16, paddingTop: 35 }}
         >
           {/* Avatar Section */}
           <View

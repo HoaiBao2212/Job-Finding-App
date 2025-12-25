@@ -6,13 +6,13 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
 import SidebarLayout from "../Component/SidebarLayout";
 

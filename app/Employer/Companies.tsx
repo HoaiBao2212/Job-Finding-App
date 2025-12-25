@@ -20,7 +20,7 @@ import {
   View,
 } from "react-native";
 import AlertModal from "../Component/AlertModal";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 const VIETNAM_LOCATIONS = [
   "Hà Nội",

@@ -15,7 +15,7 @@ import { authService } from "../../lib/services/authService";
 import { employerService } from "../../lib/services/employerService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface CompanyDetailInfo {
   id: number;
@@ -63,9 +63,7 @@ export default function CompanyDetailScreen() {
 
       // Lấy số lượng công việc của công ty này
       try {
-        const jobsResponse = await (
-          await import("../../lib/supabase")
-        ).supabase
+        const jobsResponse = await (await import("../../lib/supabase")).supabase
           .from("jobs")
           .select("id")
           .eq("company_id", employer.company_id);
@@ -113,7 +111,10 @@ export default function CompanyDetailScreen() {
     return (
       <EmployerSidebarLayout>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-          <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor={colors.bgNeutral}
+          />
           <View
             style={{
               flex: 1,
@@ -178,8 +179,8 @@ export default function CompanyDetailScreen() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: 20,
+              paddingTop: 35,
+              paddingBottom: 24,
             }}
           >
             <View
@@ -219,7 +220,11 @@ export default function CompanyDetailScreen() {
                 {company.name}
               </Text>
               <TouchableOpacity
-              onPress={()=>router.push(`/Employer/CompanyEditing?companyId=${company.id}`)}
+                onPress={() =>
+                  router.push(
+                    `/Employer/CompanyEditing?companyId=${company.id}`
+                  )
+                }
                 style={{
                   width: 50,
                   height: 50,
@@ -306,7 +311,6 @@ export default function CompanyDetailScreen() {
                     ? company.location.split(",")[0]
                     : "Không xác định"}
                 </Text>
-                
               </View>
               <View style={{ alignItems: "center" }}>
                 <MaterialCommunityIcons

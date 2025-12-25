@@ -557,7 +557,7 @@ function DashboardContent() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
+              paddingTop: 36,
               paddingBottom: 24,
             }}
           >
@@ -570,32 +570,8 @@ function DashboardContent() {
                 marginBottom: 20,
               }}
             >
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 26,
-                    fontWeight: "800",
-                    color: colors.white,
-                    marginBottom: 4,
-                  }}
-                >
-                  Chào mừng! 👋
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "rgba(255,255,255,0.7)",
-                    fontWeight: "500",
-                  }}
-                >
-                  Hôm nay bạn sẽ làm gì?
-                </Text>
-              </View>
               <View
-                style={{
-                  flexDirection: "row",
-                  gap: 12,
-                }}
+                style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
               >
                 <TouchableOpacity
                   onPress={toggleSidebar}
@@ -608,6 +584,7 @@ function DashboardContent() {
                     alignItems: "center",
                     borderWidth: 1,
                     borderColor: "rgba(255,255,255,0.2)",
+                    marginRight: 16,
                   }}
                 >
                   <MaterialCommunityIcons
@@ -616,54 +593,27 @@ function DashboardContent() {
                     color={colors.white}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    backgroundColor: "rgba(255,255,255,0.12)",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderWidth: 1,
-                    borderColor: "rgba(255,255,255,0.2)",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="magnify"
-                    size={22}
-                    color={colors.white}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    backgroundColor: "rgba(255,255,255,0.12)",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderWidth: 1,
-                    borderColor: "rgba(255,255,255,0.2)",
-                    position: "relative",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="bell"
-                    size={22}
-                    color={colors.white}
-                  />
-                  <View
+                <View style={{ flex: 1 }}>
+                  <Text
                     style={{
-                      position: "absolute",
-                      top: 6,
-                      right: 6,
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: "#FF4D4F",
+                      fontSize: 26,
+                      fontWeight: "800",
+                      color: colors.white,
+                      marginBottom: 4,
                     }}
-                  />
-                </TouchableOpacity>
+                  >
+                    Chào mừng! 👋
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "rgba(255,255,255,0.7)",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Hôm nay bạn sẽ làm gì?
+                  </Text>
+                </View>
               </View>
             </View>
 

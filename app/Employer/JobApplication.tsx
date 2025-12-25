@@ -150,7 +150,7 @@ export default function JobApplicationScreen() {
               text: "OK",
               onPress: () => {
                 setAlertVisible(false);
-                  router.replace("/Employer/Companies");
+                router.replace("/Employer/Companies");
               },
             },
           ]
@@ -213,7 +213,10 @@ export default function JobApplicationScreen() {
     active: jobPostings.filter((j) => j.is_active === true).length,
     closed: jobPostings.filter((j) => j.is_active === false).length,
     draft: jobPostings.filter((j) => j.is_active === null).length,
-    totalApplications: jobPostings.reduce((sum, j) => sum + (j.applications || 0), 0),
+    totalApplications: jobPostings.reduce(
+      (sum, j) => sum + (j.applications || 0),
+      0
+    ),
     totalViews: jobPostings.reduce((sum, j) => sum + (j.view_count || 0), 0),
   };
 
@@ -297,7 +300,8 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.companies?.name || item.company || "Công ty"} • {item.location || "Địa điểm"}
+              {item.companies?.name || item.company || "Công ty"} •{" "}
+              {item.location || "Địa điểm"}
             </Text>
           </View>
           <View
@@ -371,7 +375,9 @@ export default function JobApplicationScreen() {
                 marginTop: 4,
               }}
             >
-              {item.deadline ? new Date(item.deadline).toLocaleDateString("vi-VN") : "N/A"}
+              {item.deadline
+                ? new Date(item.deadline).toLocaleDateString("vi-VN")
+                : "N/A"}
             </Text>
           </View>
         </View>
@@ -468,9 +474,7 @@ export default function JobApplicationScreen() {
           }}
         >
           <TouchableOpacity
-            onPress={() =>
-              router.push(`/Employer/JobDetail?jobId=${item.id}`)
-            }
+            onPress={() => router.push(`/Employer/JobDetail?jobId=${item.id}`)}
             style={{
               flex: 1,
               paddingVertical: 10,
@@ -490,9 +494,7 @@ export default function JobApplicationScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() =>
-              router.push(`/Employer/JobEditing?jobId=${item.id}`)
-            }
+            onPress={() => router.push(`/Employer/JobEditing?jobId=${item.id}`)}
             style={{
               paddingVertical: 10,
               paddingHorizontal: 12,
@@ -539,7 +541,7 @@ export default function JobApplicationScreen() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
+              paddingTop: 35,
               paddingBottom: 20,
             }}
           >

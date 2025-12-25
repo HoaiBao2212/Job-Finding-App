@@ -2,7 +2,6 @@ import { theme } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 type Job = {
   id: string;
   title: string;

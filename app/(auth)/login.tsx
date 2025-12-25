@@ -1,13 +1,12 @@
 // app/(auth)/login.tsx
 import AlertModal from "@/app/Component/AlertModal";
-import { useAlert } from "@/app/Component/useAlert";
+import { useAlert } from "@/app/Component/useAlert.hook";
 import { Fonts, theme } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

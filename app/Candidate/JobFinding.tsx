@@ -5,7 +5,6 @@ import * as React from "react";
 import {
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
@@ -13,7 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
+import HeroBanner from "../Component/HeroBanner";
 import SidebarLayout, { useSidebar } from "../Component/SidebarLayout";
 
 interface Job {
@@ -274,7 +275,26 @@ function JobFindingContent() {
             alignItems: "center",
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+          {/* Sidebar Toggle Button - Left Side */}
+          <TouchableOpacity
+            onPress={toggleSidebar}
+            style={{
+              width: 50,
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 8,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="menu"
+              size={28}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
             <MaterialCommunityIcons
               name="briefcase"
               size={28}
@@ -292,65 +312,44 @@ function JobFindingContent() {
             </Text>
           </View>
 
-          {/* Notification Button and Sidebar Toggle */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TouchableOpacity
+          {/* Notification Button - Right Side */}
+          <TouchableOpacity
+            style={{
+              width: 50,
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="bell"
+              size={28}
+              color={colors.white}
+            />
+            <View
               style={{
-                width: 50,
-                height: 50,
+                position: "absolute",
+                top: 8,
+                right: 8,
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                backgroundColor: "#FF6B6B",
                 justifyContent: "center",
                 alignItems: "center",
               }}
             >
-              <MaterialCommunityIcons
-                name="bell"
-                size={28}
-                color={colors.white}
-              />
-              <View
+              <Text
                 style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  width: 16,
-                  height: 16,
-                  borderRadius: 8,
-                  backgroundColor: "#FF6B6B",
-                  justifyContent: "center",
-                  alignItems: "center",
+                  color: colors.white,
+                  fontSize: 10,
+                  fontWeight: "700",
                 }}
               >
-                <Text
-                  style={{
-                    color: colors.white,
-                    fontSize: 10,
-                    fontWeight: "700",
-                  }}
-                >
-                  2
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Sidebar Toggle Button */}
-            <TouchableOpacity
-              onPress={toggleSidebar}
-              style={{
-                width: 50,
-                height: 50,
-                justifyContent: "center",
-                alignItems: "center",
-                borderRadius: 8,
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-              }}
-            >
-              <MaterialCommunityIcons
-                name="menu"
-                size={28}
-                color={colors.white}
-              />
-            </TouchableOpacity>
-          </View>
+                2
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Search Bar in Header */}
@@ -388,166 +387,148 @@ function JobFindingContent() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
+        style={{ flex: 1, paddingHorizontal: 0, paddingTop: 0 }}
       >
-        {/* Header Content */}
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "700",
-              color: colors.textDark,
-              marginBottom: 8,
-              fontFamily: Fonts.sans,
-            }}
-          >
-            Xin chào! 👋
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              color: colors.textGray,
-              fontFamily: Fonts.sans,
-            }}
-          >
-            Hôm nay bạn muốn tìm việc gì?
-          </Text>
-        </View>
+        {/* Hero Banner */}
+        <HeroBanner supportingText="Khám phá những cơ hội phù hợp với kỹ năng và nguyện vọng của bạn" />
 
-        {/* Filter Tags */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginBottom: 24 }}
-        >
-          <TouchableOpacity
-            onPress={() => setSelectedFilter("all")}
-            style={{
-              backgroundColor:
-                selectedFilter === "all" ? colors.primary : colors.white,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 20,
-              marginRight: 12,
-              borderWidth: selectedFilter === "all" ? 0 : 1,
-              borderColor: colors.borderLight,
-            }}
+        {/* Content Container with padding */}
+        <View style={{ paddingHorizontal: 16 }}>
+          {/* Filter Tags */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 24 }}
           >
-            <Text
-              style={{
-                color:
-                  selectedFilter === "all" ? colors.white : colors.textDark,
-                fontWeight: "500",
-                fontSize: 13,
-                fontFamily: Fonts.sans,
-              }}
-            >
-              Tất cả
-            </Text>
-          </TouchableOpacity>
-          {[
-            { label: "Remote", value: "remote" },
-            { label: "Thực tập", value: "internship" },
-            { label: "Toàn thời gian", value: "full-time" },
-            { label: "Bán thời gian", value: "part-time" },
-          ].map((filter) => (
             <TouchableOpacity
-              key={filter.value}
-              onPress={() => setSelectedFilter(filter.value)}
+              onPress={() => setSelectedFilter("all")}
               style={{
                 backgroundColor:
-                  selectedFilter === filter.value
-                    ? colors.primary
-                    : colors.white,
-                borderWidth: selectedFilter === filter.value ? 0 : 1,
-                borderColor: colors.borderLight,
+                  selectedFilter === "all" ? colors.primary : colors.white,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 20,
                 marginRight: 12,
+                borderWidth: selectedFilter === "all" ? 0 : 1,
+                borderColor: colors.borderLight,
               }}
             >
               <Text
                 style={{
                   color:
-                    selectedFilter === filter.value
-                      ? colors.white
-                      : colors.textDark,
+                    selectedFilter === "all" ? colors.white : colors.textDark,
                   fontWeight: "500",
                   fontSize: 13,
                   fontFamily: Fonts.sans,
                 }}
               >
-                {filter.label}
+                Tất cả
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+            {[
+              { label: "Remote", value: "remote" },
+              { label: "Thực tập", value: "internship" },
+              { label: "Toàn thời gian", value: "full-time" },
+              { label: "Bán thời gian", value: "part-time" },
+            ].map((filter) => (
+              <TouchableOpacity
+                key={filter.value}
+                onPress={() => setSelectedFilter(filter.value)}
+                style={{
+                  backgroundColor:
+                    selectedFilter === filter.value
+                      ? colors.primary
+                      : colors.white,
+                  borderWidth: selectedFilter === filter.value ? 0 : 1,
+                  borderColor: colors.borderLight,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  marginRight: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      selectedFilter === filter.value
+                        ? colors.white
+                        : colors.textDark,
+                    fontWeight: "500",
+                    fontSize: 13,
+                    fontFamily: Fonts.sans,
+                  }}
+                >
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
-        {/* Featured Jobs Section */}
-        <View style={{ marginBottom: 24 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <Text
+          {/* Featured Jobs Section */}
+          <View style={{ marginBottom: 24 }}>
+            <View
               style={{
-                fontSize: 18,
-                fontWeight: "700",
-                color: colors.textDark,
-                fontFamily: Fonts.sans,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
               }}
             >
-              Công việc nổi bật
-            </Text>
-            <TouchableOpacity>
               <Text
                 style={{
-                  fontSize: 13,
-                  color: colors.primary,
-                  fontWeight: "500",
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: colors.textDark,
                   fontFamily: Fonts.sans,
                 }}
               >
-                Xem tất cả →
+                Công việc nổi bật
               </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: colors.primary,
+                    fontWeight: "500",
+                    fontFamily: Fonts.sans,
+                  }}
+                >
+                  Xem tất cả →
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          {loading ? (
-            <View style={{ paddingVertical: 40, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : filteredJobs.length > 0 ? (
-            <FlatList
-              data={filteredJobs}
-              renderItem={JobCard}
-              keyExtractor={(item) => item.id.toString()}
-              scrollEnabled={false}
-            />
-          ) : (
-            <View style={{ paddingVertical: 40, alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="briefcase-outline"
-                size={48}
-                color={colors.textGray}
+            {loading ? (
+              <View style={{ paddingVertical: 40, alignItems: "center" }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : filteredJobs.length > 0 ? (
+              <FlatList
+                data={filteredJobs}
+                renderItem={JobCard}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false}
               />
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: colors.textGray,
-                  marginTop: 12,
-                  fontFamily: Fonts.sans,
-                }}
-              >
-                Không tìm thấy công việc phù hợp
-              </Text>
-            </View>
-          )}
+            ) : (
+              <View style={{ paddingVertical: 40, alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="briefcase-outline"
+                  size={48}
+                  color={colors.textGray}
+                />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: colors.textGray,
+                    marginTop: 12,
+                    fontFamily: Fonts.sans,
+                  }}
+                >
+                  Không tìm thấy công việc phù hợp
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

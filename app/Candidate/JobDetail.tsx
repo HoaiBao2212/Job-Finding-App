@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
   Share,
   StatusBar,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
 import { supabase } from "../../lib/supabase";
@@ -1075,7 +1075,7 @@ export default function JobDetailScreen() {
                   borderTopLeftRadius: 24,
                   borderTopRightRadius: 24,
                   paddingHorizontal: 16,
-                  paddingTop: 20,
+                  paddingTop: 35,
                   maxHeight: "90%",
                 }}
               >

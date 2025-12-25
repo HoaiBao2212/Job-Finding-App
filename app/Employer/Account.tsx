@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Switch,
@@ -12,12 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
 import { employerService } from "../../lib/services/employerService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface EmployerAccount {
   fullName: string;

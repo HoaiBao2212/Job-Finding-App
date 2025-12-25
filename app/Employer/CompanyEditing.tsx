@@ -2,14 +2,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { colors } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
@@ -17,7 +17,7 @@ import { companyService } from "../../lib/services/companyService";
 import { employerService } from "../../lib/services/employerService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface CompanyEditFormData {
   name: string;
@@ -155,8 +155,8 @@ export default function CompanyEditingScreen() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: 20,
+              paddingTop: 35,
+              paddingBottom: 24,
             }}
           >
             <View

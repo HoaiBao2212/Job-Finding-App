@@ -14,7 +14,7 @@ import { colors } from "../../constants/theme";
 import { jobService } from "../../lib/services/jobService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface JobDetail {
   id: number;
@@ -186,8 +186,8 @@ export default function EmployerJobDetailScreen() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: 20,
+              paddingTop: 35,
+              paddingBottom: 24,
             }}
           >
             <TouchableOpacity

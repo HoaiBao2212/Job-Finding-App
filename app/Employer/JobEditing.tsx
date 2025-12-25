@@ -2,20 +2,20 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { colors } from "../../constants/theme";
 import { jobService } from "../../lib/services/jobService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface JobEditFormData {
   title: string;
@@ -112,8 +112,12 @@ export default function JobEditingScreen() {
       setSaving(true);
       const updateData = {
         ...formData,
-        salary_min: formData.salary_min ? parseInt(String(formData.salary_min)) : null,
-        salary_max: formData.salary_max ? parseInt(String(formData.salary_max)) : null,
+        salary_min: formData.salary_min
+          ? parseInt(String(formData.salary_min))
+          : null,
+        salary_max: formData.salary_max
+          ? parseInt(String(formData.salary_max))
+          : null,
       };
 
       await jobService.updateJob(jobId, updateData);
@@ -162,8 +166,8 @@ export default function JobEditingScreen() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: 20,
+              paddingTop: 35,
+              paddingBottom: 24,
             }}
           >
             <TouchableOpacity

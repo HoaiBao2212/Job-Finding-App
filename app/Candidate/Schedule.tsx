@@ -1,16 +1,16 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as React from 'react';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as React from "react";
 import {
-    FlatList,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { colors } from '../../constants/theme';
-import SidebarLayout from '../Component/SidebarLayout';
+  FlatList,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../../constants/theme";
+import SidebarLayout from "../Component/SidebarLayout";
 
 interface InterviewSchedule {
   id: string;
@@ -18,70 +18,70 @@ interface InterviewSchedule {
   company: string;
   interviewDate: string;
   interviewTime: string;
-  interviewType: 'online' | 'offline';
+  interviewType: "online" | "offline";
   location?: string;
   interviewerName: string;
   interviewerTitle: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: "scheduled" | "completed" | "cancelled";
   statusVn: string;
   notes?: string;
 }
 
 const INTERVIEW_SCHEDULES: InterviewSchedule[] = [
   {
-    id: '1',
-    jobTitle: 'Senior React Native Developer',
-    company: 'Tech Company A',
-    interviewDate: '20/11/2025',
-    interviewTime: '10:00 - 11:00',
-    interviewType: 'online',
-    location: 'Google Meet',
-    interviewerName: 'Nguyễn Thị B',
-    interviewerTitle: 'HR Manager',
-    status: 'scheduled',
-    statusVn: 'Sắp diễn ra',
-    notes: 'Chuẩn bị CV và portfolio',
+    id: "1",
+    jobTitle: "Senior React Native Developer",
+    company: "Tech Company A",
+    interviewDate: "20/11/2025",
+    interviewTime: "10:00 - 11:00",
+    interviewType: "online",
+    location: "Google Meet",
+    interviewerName: "Nguyễn Thị B",
+    interviewerTitle: "HR Manager",
+    status: "scheduled",
+    statusVn: "Sắp diễn ra",
+    notes: "Chuẩn bị CV và portfolio",
   },
   {
-    id: '2',
-    jobTitle: 'Full Stack Developer',
-    company: 'Startup XYZ',
-    interviewDate: '22/11/2025',
-    interviewTime: '14:00 - 15:30',
-    interviewType: 'offline',
-    location: 'Tầng 5, Tòa nhà ABC, Quận 1, TP.HCM',
-    interviewerName: 'Trần Văn C',
-    interviewerTitle: 'Tech Lead',
-    status: 'scheduled',
-    statusVn: 'Sắp diễn ra',
-    notes: 'Mang theo bằng cấp và chứng chỉ',
+    id: "2",
+    jobTitle: "Full Stack Developer",
+    company: "Startup XYZ",
+    interviewDate: "22/11/2025",
+    interviewTime: "14:00 - 15:30",
+    interviewType: "offline",
+    location: "Tầng 5, Tòa nhà ABC, Quận 1, TP.HCM",
+    interviewerName: "Trần Văn C",
+    interviewerTitle: "Tech Lead",
+    status: "scheduled",
+    statusVn: "Sắp diễn ra",
+    notes: "Mang theo bằng cấp và chứng chỉ",
   },
   {
-    id: '3',
-    jobTitle: 'Mobile App Developer',
-    company: 'Tech Company B',
-    interviewDate: '18/11/2025',
-    interviewTime: '09:00 - 10:00',
-    interviewType: 'online',
-    location: 'Zoom',
-    interviewerName: 'Lê Thị D',
-    interviewerTitle: 'Hiring Manager',
-    status: 'completed',
-    statusVn: 'Hoàn thành',
+    id: "3",
+    jobTitle: "Mobile App Developer",
+    company: "Tech Company B",
+    interviewDate: "18/11/2025",
+    interviewTime: "09:00 - 10:00",
+    interviewType: "online",
+    location: "Zoom",
+    interviewerName: "Lê Thị D",
+    interviewerTitle: "Hiring Manager",
+    status: "completed",
+    statusVn: "Hoàn thành",
   },
   {
-    id: '4',
-    jobTitle: 'UI/UX Designer',
-    company: 'Design Studio',
-    interviewDate: '15/11/2025',
-    interviewTime: '16:00 - 16:45',
-    interviewType: 'offline',
-    location: 'Tầng 3, Văn phòng Design Studio',
-    interviewerName: 'Phạm Văn E',
-    interviewerTitle: 'Design Director',
-    status: 'cancelled',
-    statusVn: 'Đã hủy',
-    notes: 'Nhân viên bênh dự định reschedule',
+    id: "4",
+    jobTitle: "UI/UX Designer",
+    company: "Design Studio",
+    interviewDate: "15/11/2025",
+    interviewTime: "16:00 - 16:45",
+    interviewType: "offline",
+    location: "Tầng 3, Văn phòng Design Studio",
+    interviewerName: "Phạm Văn E",
+    interviewerTitle: "Design Director",
+    status: "cancelled",
+    statusVn: "Đã hủy",
+    notes: "Nhân viên bênh dự định reschedule",
   },
 ];
 
@@ -90,12 +90,12 @@ export default function ScheduleScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled':
-        return '#4169E1';
-      case 'completed':
-        return '#00B050';
-      case 'cancelled':
-        return '#E63946';
+      case "scheduled":
+        return "#4169E1";
+      case "completed":
+        return "#00B050";
+      case "cancelled":
+        return "#E63946";
       default:
         return colors.textGray;
     }
@@ -103,20 +103,20 @@ export default function ScheduleScreen() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'scheduled':
-        return 'calendar-clock';
-      case 'completed':
-        return 'check-circle';
-      case 'cancelled':
-        return 'close-circle';
+      case "scheduled":
+        return "calendar-clock";
+      case "completed":
+        return "check-circle";
+      case "cancelled":
+        return "close-circle";
       default:
-        return 'help-circle';
+        return "help-circle";
     }
   };
 
   const getDaysUntilInterview = (dateStr: string) => {
     const today = new Date();
-    const [day, month, year] = dateStr.split('/').map(Number);
+    const [day, month, year] = dateStr.split("/").map(Number);
     const interviewDate = new Date(year, month - 1, day);
     const diffTime = interviewDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -150,9 +150,9 @@ export default function ScheduleScreen() {
         {/* Header */}
         <View
           style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
             marginBottom: 12,
           }}
         >
@@ -160,7 +160,7 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 16,
-                fontWeight: '600',
+                fontWeight: "600",
                 color: colors.textDark,
                 marginBottom: 4,
               }}
@@ -179,8 +179,8 @@ export default function ScheduleScreen() {
           </View>
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
+              flexDirection: "row",
+              alignItems: "center",
               backgroundColor: getStatusColor(item.status),
               paddingHorizontal: 10,
               paddingVertical: 6,
@@ -196,8 +196,8 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 11,
-                color: 'white',
-                fontWeight: '600',
+                color: "white",
+                fontWeight: "600",
               }}
             >
               {item.statusVn}
@@ -214,7 +214,13 @@ export default function ScheduleScreen() {
             marginBottom: 12,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
             <MaterialCommunityIcons
               name="calendar"
               size={16}
@@ -224,7 +230,7 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 13,
-                fontWeight: '600',
+                fontWeight: "600",
                 color: colors.textDark,
                 marginRight: 16,
               }}
@@ -240,7 +246,7 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 13,
-                fontWeight: '600',
+                fontWeight: "600",
                 color: colors.textDark,
               }}
             >
@@ -248,9 +254,9 @@ export default function ScheduleScreen() {
             </Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <MaterialCommunityIcons
-              name={item.interviewType === 'online' ? 'video' : 'map-marker'}
+              name={item.interviewType === "online" ? "video" : "map-marker"}
               size={16}
               color={colors.primary}
               style={{ marginRight: 8 }}
@@ -266,7 +272,7 @@ export default function ScheduleScreen() {
             </Text>
           </View>
 
-          {daysLeft > 0 && item.status === 'scheduled' && (
+          {daysLeft > 0 && item.status === "scheduled" && (
             <View
               style={{
                 marginTop: 8,
@@ -279,7 +285,7 @@ export default function ScheduleScreen() {
                 style={{
                   fontSize: 11,
                   color: colors.primary,
-                  fontWeight: '600',
+                  fontWeight: "600",
                 }}
               >
                 ⏰ Còn {daysLeft} ngày
@@ -291,8 +297,8 @@ export default function ScheduleScreen() {
         {/* Interviewer Info */}
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: "row",
+            alignItems: "center",
             paddingBottom: 12,
             borderBottomWidth: 1,
             borderBottomColor: colors.borderLight,
@@ -304,8 +310,8 @@ export default function ScheduleScreen() {
               height: 40,
               borderRadius: 20,
               backgroundColor: colors.primarySoftBg,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
               marginRight: 12,
             }}
           >
@@ -319,7 +325,7 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 13,
-                fontWeight: '600',
+                fontWeight: "600",
                 color: colors.textDark,
               }}
             >
@@ -343,7 +349,7 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 11,
-                fontWeight: '500',
+                fontWeight: "500",
                 color: colors.textBlue,
                 marginBottom: 4,
               }}
@@ -363,10 +369,10 @@ export default function ScheduleScreen() {
         )}
 
         {/* Action Buttons */}
-        {item.status === 'scheduled' && (
+        {item.status === "scheduled" && (
           <View
             style={{
-              flexDirection: 'row',
+              flexDirection: "row",
               gap: 8,
               marginTop: 12,
               paddingTop: 12,
@@ -381,13 +387,13 @@ export default function ScheduleScreen() {
                 borderRadius: 6,
                 borderWidth: 1,
                 borderColor: colors.primary,
-                alignItems: 'center',
+                alignItems: "center",
               }}
             >
               <Text
                 style={{
                   fontSize: 12,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: colors.primary,
                 }}
               >
@@ -400,13 +406,13 @@ export default function ScheduleScreen() {
                 paddingVertical: 8,
                 borderRadius: 6,
                 backgroundColor: colors.primary,
-                alignItems: 'center',
+                alignItems: "center",
               }}
             >
               <Text
                 style={{
                   fontSize: 12,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: colors.white,
                 }}
               >
@@ -433,7 +439,7 @@ export default function ScheduleScreen() {
             <Text
               style={{
                 fontSize: 28,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: colors.textDark,
                 marginBottom: 8,
               }}
@@ -457,11 +463,11 @@ export default function ScheduleScreen() {
               borderRadius: 12,
               padding: 16,
               marginBottom: 24,
-              flexDirection: 'row',
-              justifyContent: 'space-around',
+              flexDirection: "row",
+              justifyContent: "space-around",
             }}
           >
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ alignItems: "center" }}>
               <MaterialCommunityIcons
                 name="calendar-check"
                 size={24}
@@ -479,7 +485,7 @@ export default function ScheduleScreen() {
               <Text
                 style={{
                   fontSize: 18,
-                  fontWeight: '700',
+                  fontWeight: "700",
                   color: colors.textDark,
                   marginTop: 4,
                 }}
@@ -487,7 +493,7 @@ export default function ScheduleScreen() {
                 {INTERVIEW_SCHEDULES.length}
               </Text>
             </View>
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ alignItems: "center" }}>
               <MaterialCommunityIcons
                 name="calendar-clock"
                 size={24}
@@ -505,16 +511,18 @@ export default function ScheduleScreen() {
               <Text
                 style={{
                   fontSize: 18,
-                  fontWeight: '700',
+                  fontWeight: "700",
                   color: colors.textDark,
                   marginTop: 4,
                 }}
               >
-                {INTERVIEW_SCHEDULES.filter((s) => s.status === 'scheduled')
-                  .length}
+                {
+                  INTERVIEW_SCHEDULES.filter((s) => s.status === "scheduled")
+                    .length
+                }
               </Text>
             </View>
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ alignItems: "center" }}>
               <MaterialCommunityIcons
                 name="check-circle"
                 size={24}
@@ -532,13 +540,15 @@ export default function ScheduleScreen() {
               <Text
                 style={{
                   fontSize: 18,
-                  fontWeight: '700',
+                  fontWeight: "700",
                   color: colors.textDark,
                   marginTop: 4,
                 }}
               >
-                {INTERVIEW_SCHEDULES.filter((s) => s.status === 'completed')
-                  .length}
+                {
+                  INTERVIEW_SCHEDULES.filter((s) => s.status === "completed")
+                    .length
+                }
               </Text>
             </View>
           </View>
@@ -564,7 +574,7 @@ export default function ScheduleScreen() {
               <Text
                 style={{
                   color: !filterStatus ? colors.white : colors.textDark,
-                  fontWeight: '500',
+                  fontWeight: "500",
                   fontSize: 13,
                 }}
               >
@@ -573,9 +583,17 @@ export default function ScheduleScreen() {
             </TouchableOpacity>
 
             {[
-              { status: 'scheduled', label: 'Sắp diễn ra', icon: 'calendar-clock' },
-              { status: 'completed', label: 'Hoàn thành', icon: 'check-circle' },
-              { status: 'cancelled', label: 'Đã hủy', icon: 'close-circle' },
+              {
+                status: "scheduled",
+                label: "Sắp diễn ra",
+                icon: "calendar-clock",
+              },
+              {
+                status: "completed",
+                label: "Hoàn thành",
+                icon: "check-circle",
+              },
+              { status: "cancelled", label: "Đã hủy", icon: "close-circle" },
             ].map((filter) => (
               <TouchableOpacity
                 key={filter.status}
@@ -596,7 +614,7 @@ export default function ScheduleScreen() {
                       : colors.borderLight,
                 }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <MaterialCommunityIcons
                     name={filter.icon as any}
                     size={14}
@@ -614,7 +632,7 @@ export default function ScheduleScreen() {
                           ? colors.primary
                           : colors.textDark,
                       fontWeight:
-                        filterStatus === filter.status ? '600' : '500',
+                        filterStatus === filter.status ? "600" : "500",
                       fontSize: 13,
                     }}
                   >
@@ -638,8 +656,8 @@ export default function ScheduleScreen() {
             <View
               style={{
                 paddingVertical: 40,
-                alignItems: 'center',
-                justifyContent: 'center',
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <MaterialCommunityIcons
@@ -651,7 +669,7 @@ export default function ScheduleScreen() {
               <Text
                 style={{
                   fontSize: 16,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: colors.textDark,
                   marginBottom: 8,
                 }}
@@ -662,7 +680,7 @@ export default function ScheduleScreen() {
                 style={{
                   fontSize: 13,
                   color: colors.textGray,
-                  textAlign: 'center',
+                  textAlign: "center",
                 }}
               >
                 Các lịch phỏng vấn sẽ xuất hiện ở đây

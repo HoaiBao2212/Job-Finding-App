@@ -18,7 +18,7 @@ import { employerService } from "../../lib/services/employerService";
 import { jobService } from "../../lib/services/jobService";
 import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
-import { useAlert } from "../Component/useAlert";
+import { useAlert } from "../Component/useAlert.hook";
 
 interface Candidate {
   id: number;
@@ -125,7 +125,7 @@ export default function CandidateApplyScreen() {
       const candidateName = candidate.profiles?.full_name || "Không xác định";
       const candidateEmail = candidate.profiles?.email || "";
       const jobTitle = candidate.job_title || "";
-      
+
       const matchesSearch =
         candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,7 +166,10 @@ export default function CandidateApplyScreen() {
           style: "default",
           onPress: async () => {
             try {
-              await jobService.updateApplicationStatus(applicationId, newStatus);
+              await jobService.updateApplicationStatus(
+                applicationId,
+                newStatus
+              );
               // Cập nhật lại danh sách
               loadApplications();
               showAlert("Thành công", "Trạng thái ứng viên đã được cập nhập", [
@@ -183,10 +186,13 @@ export default function CandidateApplyScreen() {
 
   const CandidateCard = ({ item }: { item: Candidate }) => {
     const statusInfo = getStatusColor(item.status);
-    const candidateName = item.candidate_profiles?.profiles?.full_name || "Không xác định";
+    const candidateName =
+      item.candidate_profiles?.profiles?.full_name || "Không xác định";
     const candidateEmail = item.candidate_profiles?.profiles?.email || "";
     const candidatePhone = item.candidate_profiles?.profiles?.phone || "";
-    const candidateAvatar = item.candidate_profiles?.profiles?.avatar_url || "https://i.pravatar.cc/150?img=1";
+    const candidateAvatar =
+      item.candidate_profiles?.profiles?.avatar_url ||
+      "https://i.pravatar.cc/150?img=1";
     const experience = item.candidate_profiles?.years_of_experience || 0;
     const headline = item.candidate_profiles?.headline || "";
 
@@ -555,8 +561,8 @@ export default function CandidateApplyScreen() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingTop: 16,
-              paddingBottom: 20,
+              paddingTop: 35,
+              paddingBottom: 24,
             }}
           >
             <View
