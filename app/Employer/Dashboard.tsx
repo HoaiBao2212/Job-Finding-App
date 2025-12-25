@@ -288,19 +288,20 @@ function DashboardContent() {
   // Chuyển đổi dữ liệu từ API sang format hiển thị
   const displayRecentApps: RecentApplication[] =
     recentApplications && recentApplications.length > 0
-      ? recentApplications.map((app: any) => ({
-          id: app.id?.toString() || "",
-          applicationId: app.id,
-          name: app.candidate_profiles?.user?.full_name || "Ứng viên",
-          position: app.jobs?.title || "",
-          avatar:
-            app.candidate_profiles?.user?.avatar_url ||
-            "https://i.pravatar.cc/150?img=default",
-          appliedDate: formatDate(app.applied_at),
-          status: (app.status === "pending" || app.status === "applied"
-            ? "new"
-            : app.status) as any,
-        }))
+      ? recentApplications.map((app: any) => {
+          const st = app.status === "pending" || app.status === "applied" ? "new" : app.status;
+          return {
+            id: app.id?.toString() || "",
+            applicationId: app.id,
+            name: app.candidate_profiles?.user?.full_name || "Ứng viên",
+            position: app.jobs?.title || "",
+            avatar:
+              app.candidate_profiles?.user?.avatar_url ||
+              "https://i.pravatar.cc/150?img=default",
+            appliedDate: formatDate(app.applied_at),
+            status: st as any,
+          };
+        })
       : [
           {
             id: "1",
@@ -331,19 +332,20 @@ function DashboardContent() {
   // Hiển thị tất cả ứng viên ứng tuyển
   const displayAllApps: RecentApplication[] =
     allApplications && allApplications.length > 0
-      ? allApplications.map((app: any) => ({
-          id: app.id?.toString() || "",
-          applicationId: app.id,
-          name: app.candidate_profiles?.user?.full_name || "Ứng viên",
-          position: app.jobs?.title || "",
-          avatar:
-            app.candidate_profiles?.user?.avatar_url ||
-            "https://i.pravatar.cc/150?img=default",
-          appliedDate: formatDate(app.applied_at),
-          status: (app.status === "pending" || app.status === "applied"
-            ? "new"
-            : app.status) as any,
-        }))
+      ? allApplications.map((app: any) => {
+          const st = app.status === "pending" || app.status === "applied" ? "new" : app.status;
+          return {
+            id: app.id?.toString() || "",
+            applicationId: app.id,
+            name: app.candidate_profiles?.user?.full_name || "Ứng viên",
+            position: app.jobs?.title || "",
+            avatar:
+              app.candidate_profiles?.user?.avatar_url ||
+              "https://i.pravatar.cc/150?img=default",
+            appliedDate: formatDate(app.applied_at),
+            status: st as any,
+          };
+        })
       : [];
 
   // Filter applications by search query
@@ -712,18 +714,40 @@ function DashboardContent() {
 
             {/* Stats Quick View - Horizontal Scroll */}
             <View style={{ marginTop: 4 }}>
-              <Text
+              <View
                 style={{
-                  fontSize: 11,
-                  color: "rgba(255,255,255,0.6)",
-                  fontWeight: "600",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                   marginBottom: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
                 }}
               >
-                Tổng quan nhanh
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.6)",
+                    fontWeight: "600",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Tổng quan nhanh
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/Employer/StatsDetail")}
+                  style={{ paddingVertical: 6, paddingHorizontal: 8 }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: "rgba(255,255,255,0.95)",
+                    }}
+                  >
+                    Xem thống kê chi tiết
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <View
                 style={{
                   flexDirection: "row",
