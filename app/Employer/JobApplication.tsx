@@ -77,6 +77,41 @@ export default function JobApplicationScreen() {
     setAlertVisible(true);
   };
 
+  const handlePostJob = async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Kiểm tra hồ sơ công ty
+      const employer = await employerService.getEmployerProfile(user.id);
+      if (!employer?.id) {
+        showAlert(
+          "Tạo hồ sơ doanh nghiệp",
+          "Bạn chưa tạo hồ sơ doanh nghiệp. Vui lòng tạo hồ sơ để có thể đăng tin tuyển dụng"
+        );
+        return;
+      }
+
+      // Kiểm tra hồ sơ người dùng
+      if (!user?.email) {
+        showAlert(
+          "Hoàn thiện hồ sơ",
+          "Vui lòng hoàn thiện thông tin cá nhân trước khi đăng tin tuyển dụng"
+        );
+        return;
+      }
+
+      // Nếu hợp lệ, chuyển đến trang đăng tin
+      router.push("/Employer/JobPosting");
+    } catch (error) {
+      console.error("Error checking profile:", error);
+      showAlert("Lỗi", "Có lỗi khi kiểm tra hồ sơ");
+    }
+  };
+
   const handleDeleteJob = (jobId: string | number) => {
     showAlert(
       "Xóa công việc",
@@ -112,6 +147,48 @@ export default function JobApplicationScreen() {
     } catch (error) {
       console.error("Error deleting job:", error);
       showAlert("Lỗi", "Không thể xóa công việc");
+    }
+  };
+
+  const handleCloseJob = (jobId: string | number) => {
+    showAlert(
+      "Đóng ứng tuyển",
+      "Bạn có chắc muốn đóng công việc này? Ứng viên không thể ứng tuyển vào công việc này nữa.",
+      [
+        {
+          text: "Đóng",
+          onPress: () => {
+            setAlertVisible(false);
+            closeJobConfirmed(jobId);
+          },
+        },
+        {
+          text: "Hủy",
+          onPress: () => setAlertVisible(false),
+        },
+      ]
+    );
+  };
+
+  const closeJobConfirmed = async (jobId: string | number) => {
+    try {
+      const jobIdNum = typeof jobId === "string" ? parseInt(jobId) : jobId;
+      await jobService.updateJob(jobIdNum, { is_active: false });
+      // Cập nhật danh sách công việc
+      setJobPostings(
+        jobPostings.map((job) =>
+          job.id === jobIdNum ? { ...job, is_active: false } : job
+        )
+      );
+      showAlert("Thành công", "Công việc đã được đóng", [
+        {
+          text: "OK",
+          onPress: () => setAlertVisible(false),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error closing job:", error);
+      showAlert("Lỗi", "Không thể đóng công việc");
     }
   };
 
@@ -395,31 +472,6 @@ export default function JobApplicationScreen() {
         >
           <View style={{ alignItems: "center" }}>
             <MaterialCommunityIcons
-              name="file-document"
-              size={16}
-              color={colors.primary}
-            />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: colors.textDark,
-                marginTop: 4,
-              }}
-            >
-              {item.applicantsCv || 0}
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                color: colors.textGray,
-              }}
-            >
-              CV
-            </Text>
-          </View>
-          <View style={{ alignItems: "center" }}>
-            <MaterialCommunityIcons
               name="check-circle"
               size={16}
               color="#52C41A"
@@ -512,6 +564,24 @@ export default function JobApplicationScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => handleCloseJob(item.id)}
+            style={{
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: "#FF7875",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="close-circle"
+              size={16}
+              color="#FF7875"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => handleDeleteJob(item.id)}
             style={{
               paddingVertical: 10,
@@ -596,7 +666,7 @@ export default function JobApplicationScreen() {
                 </View>
               </View>
               <TouchableOpacity
-                onPress={() => router.push("/Employer/JobPosting" as any)}
+                onPress={handlePostJob}
                 style={{
                   width: 50,
                   height: 50,
@@ -826,10 +896,7 @@ export default function JobApplicationScreen() {
         title={alertTitle}
         message={alertMessage}
         buttons={alertButtons}
-        onDismiss={() => {
-          setAlertVisible(false);
-          router.back();
-        }}
+        onDismiss={() => setAlertVisible(false)}
       />
     </EmployerSidebarLayout>
   );

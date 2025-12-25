@@ -50,14 +50,14 @@ const MENU_ITEMS: MenuItem[] = [
     route: "/Employer/JobApplication",
   },
   {
-    icon: "office-building",
-    label: "Công ty",
-    route: "/Employer/CompanyDetail",
-  },
-  {
     icon: "account-multiple",
     label: "Người ứng tuyển",
     route: "/Employer/CandidateApply",
+  },
+  {
+    icon: "office-building",
+    label: "Công ty",
+    route: "/Employer/CompanyDetail",
   },
   { icon: "account-circle", label: "Tài khoản", route: "/Employer/Account" },
 ];

@@ -222,12 +222,29 @@ export default function JobDetailScreen() {
               }
             : undefined,
         });
+
+        // Increment view count
+        await incrementViewCount(jobId);
       }
     } catch (error) {
       console.error("Error loading job detail:", error);
       Alert.alert("Lỗi", "Không thể tải chi tiết công việc");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const incrementViewCount = async (id: number | null) => {
+    if (!id) return;
+    try {
+      const { error } = await supabase
+        .from("jobs")
+        .update({ view_count: (job?.view_count || 0) + 1 })
+        .eq("id", id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
     }
   };
 

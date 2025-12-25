@@ -30,7 +30,13 @@ export const useAlert = () => {
       visible: true,
       title,
       message,
-      buttons: buttons || [{ text: "OK", style: "default" }],
+      buttons: buttons || [
+        {
+          text: "OK",
+          style: "default",
+          onPress: () => hideAlert(),
+        },
+      ],
     });
   };
 

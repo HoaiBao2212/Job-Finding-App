@@ -6,6 +6,7 @@ import {
   ScrollView,
   StatusBar,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -13,6 +14,7 @@ import { colors } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
 import { employerService } from "../../lib/services/employerService";
 import { jobService } from "../../lib/services/jobService";
+import AlertModal from "../Component/AlertModal";
 import EmployerSidebarLayout, {
   useSidebar,
 } from "../Component/EmployerSidebarLayout";
@@ -38,6 +40,7 @@ interface JobPosting {
 
 interface RecentApplication {
   id: string;
+  applicationId?: number;
   name: string;
   position: string;
   avatar: string;
@@ -79,11 +82,57 @@ function DashboardContent() {
   });
   const [jobPostings, setJobPostings] = useState<any[]>([]);
   const [employerId, setEmployerId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "postings" | "applications"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<"postings" | "applications">(
+    "postings"
+  );
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
   const [allApplications, setAllApplications] = useState<any[]>([]);
+  const [applicationSearch, setApplicationSearch] = useState("");
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const handlePostJob = async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Kiểm tra hồ sơ công ty
+      const employer = await employerService.getEmployerProfile(user.id);
+      if (!employer?.id) {
+        showAlert(
+          "Tạo hồ sơ doanh nghiệp",
+          "Bạn chưa tạo hồ sơ doanh nghiệp. Vui lòng tạo hồ sơ để có thể đăng tin tuyển dụng"
+        );
+        return;
+      }
+
+      // Kiểm tra hồ sơ người dùng
+      const profile = await authService.getCurrentUser();
+      if (!profile?.email) {
+        showAlert(
+          "Hoàn thiện hồ sơ",
+          "Vui lòng hoàn thiện thông tin cá nhân trước khi đăng tin tuyển dụng"
+        );
+        return;
+      }
+
+      // Nếu hợp lệ, chuyển đến trang đăng tin
+      router.push("/Employer/JobPosting");
+    } catch (error) {
+      console.error("Error checking profile:", error);
+      showAlert("Lỗi", "Có lỗi khi kiểm tra hồ sơ");
+    }
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -108,7 +157,19 @@ function DashboardContent() {
 
         // Lấy danh sách công việc
         const jobs = await jobService.getEmployerJobs(employer.id);
-        setJobPostings(jobs.slice(0, 3)); // Lấy 3 công việc gần nhất
+
+        // Lấy số lượng ứng tuyển cho mỗi công việc
+        const jobsWithApplications = await Promise.all(
+          jobs.map(async (job) => {
+            const applications = await jobService.getApplications(job.id);
+            return {
+              ...job,
+              applicationsCount: applications?.length || 0,
+            };
+          })
+        );
+
+        setJobPostings(jobsWithApplications); // Lưu tất cả công việc
 
         // Lấy danh sách ứng viên ứng tuyển gần đây
         const recent = await jobService.getRecentApplications(employer.id, 5);
@@ -163,20 +224,30 @@ function DashboardContent() {
     },
   ];
 
+  // Hàm format ngày
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Hôm nay";
+    if (diffDays === 1) return "Hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return date.toLocaleDateString("vi-VN");
+  };
+
   // Dữ liệu giả để hiển thị khi không có dữ liệu từ API
-  const displayJobPostings: JobPosting[] = jobPostings
-    .slice(0, 3)
-    .map((job) => ({
-      id: job.id?.toString() || "",
-      title: job.title || "",
-      applications: 0,
-      views: job.view_count || 0,
-      status: job.is_active ? "active" : "closed",
-      postedDate: job.created_at
-        ? new Date(job.created_at).toLocaleDateString("vi-VN")
-        : "",
-      applicantsCv: 0,
-    }));
+  const displayJobPostings: JobPosting[] = jobPostings.map((job) => ({
+    id: job.id?.toString() || "",
+    title: job.title || "",
+    applications: job.applicationsCount || 0,
+    views: job.view_count || 0,
+    status: job.is_active ? "active" : "closed",
+    postedDate: job.created_at ? formatDate(job.created_at) : "",
+    applicantsCv: job.applicationsCount || 0,
+  }));
 
   const displayJobPostingsDefault: JobPosting[] = [
     {
@@ -208,25 +279,12 @@ function DashboardContent() {
     },
   ];
 
-  // Hàm format ngày
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Hôm nay";
-    if (diffDays === 1) return "Hôm qua";
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
-    return date.toLocaleDateString("vi-VN");
-  };
-
   // Chuyển đổi dữ liệu từ API sang format hiển thị
   const displayRecentApps: RecentApplication[] =
     recentApplications && recentApplications.length > 0
       ? recentApplications.map((app: any) => ({
           id: app.id?.toString() || "",
+          applicationId: app.id,
           name: app.candidate_profiles?.user?.full_name || "Ứng viên",
           position: app.jobs?.title || "",
           avatar:
@@ -269,6 +327,7 @@ function DashboardContent() {
     allApplications && allApplications.length > 0
       ? allApplications.map((app: any) => ({
           id: app.id?.toString() || "",
+          applicationId: app.id,
           name: app.candidate_profiles?.user?.full_name || "Ứng viên",
           position: app.jobs?.title || "",
           avatar:
@@ -280,6 +339,13 @@ function DashboardContent() {
             : app.status) as any,
         }))
       : [];
+
+  // Filter applications by search query
+  const filteredApplications: RecentApplication[] = displayAllApps.filter(
+    (app) =>
+      app.name.toLowerCase().includes(applicationSearch.toLowerCase()) ||
+      app.position.toLowerCase().includes(applicationSearch.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -415,24 +481,6 @@ function DashboardContent() {
         >
           <View style={{ alignItems: "center" }}>
             <MaterialCommunityIcons
-              name="file-document"
-              size={16}
-              color={colors.primary}
-              style={{ marginBottom: 4 }}
-            />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: colors.textDark,
-              }}
-            >
-              {item.applicantsCv}
-            </Text>
-            <Text style={{ fontSize: 10, color: colors.textGray }}>CV</Text>
-          </View>
-          <View style={{ alignItems: "center" }}>
-            <MaterialCommunityIcons
               name="check-circle"
               size={16}
               color="#52C41A"
@@ -480,15 +528,19 @@ function DashboardContent() {
     const statusInfo = getStatusColor(item.status);
     return (
       <TouchableOpacity
+        onPress={() =>
+          item.applicationId &&
+          router.push(
+            `/Employer/CandidateApplicantDetail?applicationId=${item.applicationId}`
+          )
+        }
         style={{
           backgroundColor: colors.white,
           borderRadius: 12,
-          padding: 12,
+          padding: 16,
           marginBottom: 12,
           borderWidth: 1,
           borderColor: colors.borderLight,
-          flexDirection: "row",
-          alignItems: "center",
           shadowColor: "#000",
           shadowOpacity: 0.05,
           shadowRadius: 4,
@@ -496,51 +548,86 @@ function DashboardContent() {
           elevation: 2,
         }}
       >
-        <Image
-          source={{ uri: item.avatar }}
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            marginRight: 12,
-          }}
-        />
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{ fontSize: 13, fontWeight: "600", color: colors.textDark }}
-          >
-            {item.name}
-          </Text>
-          <Text style={{ fontSize: 11, color: colors.textGray, marginTop: 2 }}>
-            {item.position}
-          </Text>
-          <Text
-            style={{
-              fontSize: 10,
-              color: colors.textGray,
-              marginTop: 4,
-            }}
-          >
-            {item.appliedDate}
-          </Text>
-        </View>
         <View
           style={{
-            backgroundColor: statusInfo.bg,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 4,
+            flexDirection: "row",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            marginBottom: 12,
           }}
         >
-          <Text
+          <View style={{ flexDirection: "row", flex: 1, alignItems: "center" }}>
+            <Image
+              source={{ uri: item.avatar }}
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                marginRight: 12,
+                backgroundColor: colors.borderLight,
+              }}
+            />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: colors.textDark,
+                  marginBottom: 4,
+                }}
+              >
+                {item.name}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textGray,
+                  marginBottom: 6,
+                }}
+              >
+                {item.position}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={12}
+                  color={colors.textGray}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: colors.textGray,
+                  }}
+                >
+                  {item.appliedDate}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
             style={{
-              fontSize: 10,
-              fontWeight: "600",
-              color: statusInfo.text,
+              backgroundColor: statusInfo.bg,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 6,
             }}
           >
-            {statusInfo.label}
-          </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "700",
+                color: statusInfo.text,
+              }}
+            >
+              {statusInfo.label}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -750,7 +837,7 @@ function DashboardContent() {
               borderBottomColor: colors.borderLight,
             }}
           >
-            {(["overview", "postings", "applications"] as const).map((tab) => (
+            {(["postings", "applications"] as const).map((tab) => (
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}
@@ -768,11 +855,7 @@ function DashboardContent() {
                     color: activeTab === tab ? colors.primary : colors.textGray,
                   }}
                 >
-                  {tab === "overview"
-                    ? "Tổng quan"
-                    : tab === "postings"
-                    ? "Tin tuyển"
-                    : "Ứng tuyển"}
+                  {tab === "postings" ? "Tin tuyển" : "Ứng tuyển"}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -780,84 +863,6 @@ function DashboardContent() {
 
           {/* Content */}
           <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-            {activeTab === "overview" && (
-              <View>
-                {/* Quick Actions */}
-                <View
-                  style={{
-                    marginBottom: 24,
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={() => router.push("/Employer/JobApplication")}
-                    style={{
-                      backgroundColor: colors.primary,
-                      borderRadius: 12,
-                      paddingVertical: 14,
-                      alignItems: "center",
-                      marginBottom: 8,
-                      flexDirection: "row",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name="plus"
-                      size={20}
-                      color={colors.white}
-                      style={{ marginRight: 8 }}
-                    />
-                    <Text
-                      style={{
-                        color: colors.white,
-                        fontSize: 14,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Đăng tin tuyển dụng
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Recent Applications */}
-                <View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "700",
-                        color: colors.textDark,
-                      }}
-                    >
-                      Ứng tuyển gần đây
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => router.push("/Employer/JobApplication")}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "600",
-                          color: colors.primary,
-                        }}
-                      >
-                        Xem tất cả
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {displayRecentApps.map((app) => (
-                    <ApplicationCard key={app.id} item={app} />
-                  ))}
-                </View>
-              </View>
-            )}
-
             {activeTab === "postings" && (
               <View>
                 {/* Quick Actions */}
@@ -867,7 +872,7 @@ function DashboardContent() {
                   }}
                 >
                   <TouchableOpacity
-                    onPress={() => router.push("/Employer/JobApplication")}
+                    onPress={handlePostJob}
                     style={{
                       backgroundColor: colors.primary,
                       borderRadius: 12,
@@ -914,7 +919,7 @@ function DashboardContent() {
                     Tin tuyển dụng của bạn
                   </Text>
                 </View>
-                {jobPostings.map((job) => (
+                {displayJobPostings.map((job) => (
                   <JobPostingCard key={job.id} item={job} />
                 ))}
               </View>
@@ -922,6 +927,40 @@ function DashboardContent() {
 
             {activeTab === "applications" && (
               <View>
+                {/* Search Bar */}
+                <View
+                  style={{
+                    marginBottom: 16,
+                    backgroundColor: colors.white,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderWidth: 1,
+                    borderColor: colors.borderLight,
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="magnify"
+                    size={18}
+                    color={colors.textGray}
+                    style={{ marginRight: 8 }}
+                  />
+                  <TextInput
+                    placeholder="Tìm ứng viên hoặc vị trí..."
+                    placeholderTextColor={colors.textGray}
+                    value={applicationSearch}
+                    onChangeText={setApplicationSearch}
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      color: colors.textDark,
+                      paddingVertical: 4,
+                    }}
+                  />
+                </View>
+
                 <Text
                   style={{
                     fontSize: 14,
@@ -930,15 +969,64 @@ function DashboardContent() {
                     marginBottom: 12,
                   }}
                 >
-                  Tất cả ứng tuyển
+                  Tất cả ứng tuyển ({filteredApplications.length})
                 </Text>
-                {displayAllApps.map((app) => (
-                  <ApplicationCard key={app.id} item={app} />
-                ))}
+                {filteredApplications.length > 0 ? (
+                  filteredApplications.map((app) => (
+                    <ApplicationCard key={app.id} item={app} />
+                  ))
+                ) : (
+                  <View
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingVertical: 32,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="inbox-outline"
+                      size={48}
+                      color={colors.textGray}
+                      style={{ marginBottom: 12 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: colors.textGray,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Không có ứng tuyển
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.textGray,
+                        marginTop: 4,
+                      }}
+                    >
+                      Hãy thử tìm kiếm với từ khóa khác
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
         </ScrollView>
+
+        {/* Alert Modal */}
+        <AlertModal
+          visible={alertVisible}
+          title={alertTitle}
+          message={alertMessage}
+          buttons={[
+            {
+              text: "OK",
+              onPress: () => setAlertVisible(false),
+            },
+          ]}
+          onDismiss={() => setAlertVisible(false)}
+        />
       </View>
     </EmployerSidebarLayout>
   );

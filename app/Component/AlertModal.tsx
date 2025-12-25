@@ -30,11 +30,8 @@ export default function AlertModal({
   onDismiss,
 }: AlertModalProps) {
   const handleBackdropPress = () => {
-    // Nếu có nút cancel, bấm nó; nếu không thì dismiss
-    const cancelButton = buttons.find((btn) => btn.style === "cancel");
-    if (cancelButton?.onPress) {
-      cancelButton.onPress();
-    } else if (onDismiss) {
+    // Bấm ngoài sẽ tự động tắt alert
+    if (onDismiss) {
       onDismiss();
     }
   };

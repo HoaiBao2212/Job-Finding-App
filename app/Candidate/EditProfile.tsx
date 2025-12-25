@@ -1,6 +1,7 @@
 import { authService } from "@/lib/services/authService";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import {
@@ -49,6 +50,7 @@ export default function EditProfileScreen() {
     desired_position: "",
     desired_job_type: "",
     preferred_locations: "",
+    website: "",
   });
 
   // Skills & categories state
@@ -69,6 +71,7 @@ export default function EditProfileScreen() {
   );
   const [skills, setSkills] = React.useState<Skill[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = React.useState<number[]>([]);
+  const [uploadingImage, setUploadingImage] = React.useState(false);
 
   React.useEffect(() => {
     loadProfileData();
@@ -126,7 +129,10 @@ export default function EditProfileScreen() {
         .single();
 
       if (candidateData) {
-        setCandidateProfile(candidateData);
+        setCandidateProfile({
+          ...candidateData,
+          website: candidateData.website || "",
+        });
 
         // Load candidate skills
         const { data: skillData } = await supabase
@@ -199,6 +205,7 @@ export default function EditProfileScreen() {
             desired_position: candidateProfile.desired_position,
             desired_job_type: candidateProfile.desired_job_type,
             preferred_locations: candidateProfile.preferred_locations,
+            website: candidateProfile.website,
             updated_at: new Date().toISOString(),
           })
           .eq("id", candidateProfile.id);
@@ -264,6 +271,85 @@ export default function EditProfileScreen() {
     setSelectedCategories((prev) =>
       prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]
     );
+  };
+
+  const pickAndUploadImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setUploadingImage(true);
+        const uri = result.assets[0].uri;
+        const user = await authService.getCurrentUser();
+
+        if (!user) {
+          showAlert("Lỗi", "Vui lòng đăng nhập lại");
+          return;
+        }
+
+        // Step 1: Fetch image and convert to blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        // Step 2: Upload image to Supabase Storage (Profile_avatar bucket)
+        const fileName = `${user.id}-${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("Profile_avatar")
+          .upload(fileName, blob, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          showAlert("Lỗi", "Không thể tải ảnh lên: " + uploadError.message);
+          return;
+        }
+
+        console.log("Upload successful:", uploadData);
+
+        // Step 3: Get public URL from uploaded image
+        const { data: publicUrlData } = supabase.storage
+          .from("Profile_avatar")
+          .getPublicUrl(fileName);
+
+        const publicUrl = publicUrlData?.publicUrl;
+        console.log("Public URL:", publicUrl);
+
+        if (publicUrl) {
+          // Step 4: Save URL to database
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+              avatar_url: publicUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", user.id);
+
+          if (updateError) {
+            console.error("Database update error:", updateError);
+            throw updateError;
+          }
+
+          // Step 5: Update local state
+          setProfile({ ...profile, avatar_url: publicUrl });
+          showAlert(
+            "Thành công",
+            "Ảnh đã được tải lên và cập nhật vào database"
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      showAlert("Lỗi", "Có lỗi khi tải ảnh lên: " + error?.message);
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const InputField = ({
@@ -430,16 +516,19 @@ export default function EditProfileScreen() {
               </View>
             )}
             <TouchableOpacity
+              onPress={pickAndUploadImage}
+              disabled={uploadingImage}
               style={{
                 backgroundColor: colors.primary,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 6,
+                opacity: uploadingImage ? 0.6 : 1,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <MaterialCommunityIcons
-                  name="camera"
+                  name={uploadingImage ? "loading" : "camera"}
                   size={16}
                   color={colors.white}
                   style={{ marginRight: 6 }}
@@ -452,7 +541,7 @@ export default function EditProfileScreen() {
                     fontFamily: Fonts.sans,
                   }}
                 >
-                  Thay đổi ảnh
+                  {uploadingImage ? "Đang tải..." : "Thay đổi ảnh"}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -504,6 +593,17 @@ export default function EditProfileScreen() {
             }
             placeholder="VD: React Native Developer"
             icon="briefcase"
+          />
+
+          <InputField
+            label="Website cá nhân"
+            value={candidateProfile.website}
+            onChangeText={(text) =>
+              setCandidateProfile({ ...candidateProfile, website: text })
+            }
+            placeholder="VD: https://myportfolio.com"
+            icon="web"
+            keyboardType="url"
           />
 
           <InputField

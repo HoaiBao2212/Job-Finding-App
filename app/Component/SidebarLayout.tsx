@@ -1,3 +1,4 @@
+import { authService } from "@/lib/services/authService";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import React, { createContext, useContext, useState } from "react";
@@ -9,6 +10,8 @@ import {
   View,
 } from "react-native";
 import { colors } from "../../constants/theme";
+import AlertModal from "./AlertModal";
+import { useAlert } from "./useAlert.hook";
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -52,6 +55,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const sidebarAnimation = React.useRef(new Animated.Value(0)).current;
+  const { alertState, showAlert, hideAlert } = useAlert();
 
   const toggleSidebar = () => {
     const toValue = isOpen ? 0 : 1;
@@ -61,6 +65,30 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       useNativeDriver: false,
     }).start();
     setIsOpen(!isOpen);
+  };
+
+  const handleLogout = () => {
+    showAlert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
+      {
+        text: "Hủy",
+        style: "cancel",
+        onPress: hideAlert,
+      },
+      {
+        text: "Đăng xuất",
+        style: "destructive",
+        onPress: async () => {
+          hideAlert();
+          try {
+            await authService.signOut();
+            router.replace("/(auth)/login");
+          } catch (error) {
+            console.error("Logout error:", error);
+            showAlert("Lỗi", "Có lỗi khi đăng xuất. Vui lòng thử lại.");
+          }
+        },
+      },
+    ]);
   };
 
   const sidebarTranslate = sidebarAnimation.interpolate({
@@ -201,6 +229,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
               }}
             >
               <TouchableOpacity
+                onPress={handleLogout}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -255,6 +284,15 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
           <View style={{ flex: 1, position: "relative" }}>{children}</View>
         </View>
       </SafeAreaView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
     </SidebarContext.Provider>
   );
 }

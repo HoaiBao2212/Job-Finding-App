@@ -79,7 +79,7 @@ export default function JobEditingScreen() {
           salary_max: jobData.salary_max || "",
           salary_currency: jobData.salary_currency || "VND",
           deadline: jobData.deadline || "",
-          is_active: jobData.is_active || true,
+          is_active: jobData.is_active !== undefined ? jobData.is_active : true,
         });
       }
     } catch (error) {
@@ -519,58 +519,6 @@ export default function JobEditingScreen() {
                   borderColor: colors.borderLight,
                 }}
               />
-            </View>
-
-            {/* Salary Currency */}
-            <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  color: colors.textDark,
-                  marginBottom: 8,
-                }}
-              >
-                Đơn vị tiền tệ
-              </Text>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {["VND", "USD", "EUR"].map((currency) => (
-                  <TouchableOpacity
-                    key={currency}
-                    onPress={() =>
-                      setFormData({ ...formData, salary_currency: currency })
-                    }
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 8,
-                      backgroundColor:
-                        formData.salary_currency === currency
-                          ? colors.primary
-                          : colors.white,
-                      borderWidth: 1,
-                      borderColor:
-                        formData.salary_currency === currency
-                          ? colors.primary
-                          : colors.borderLight,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color:
-                          formData.salary_currency === currency
-                            ? colors.white
-                            : colors.textDark,
-                      }}
-                    >
-                      {currency}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
             </View>
 
             {/* Deadline */}
