@@ -1,12 +1,16 @@
 import AlertModal from "@/app/Component/AlertModal";
 import { useAlert } from "@/app/Component/useAlert.hook";
 import { Fonts, theme } from "@/constants/theme";
+import { uploadToCloudinary } from "@/lib/services/cloudinaryService";
 import { supabase } from "@/lib/supabase";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -58,11 +62,31 @@ export default function CompleteProfileScreen() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [role, setRole] = useState<"candidate" | "employer" | "">("");
   const [location, setLocation] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { alertState, showAlert, hideAlert } = useAlert();
+
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        setSelectedImageUri(imageUri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      showAlert("Lỗi", "Không thể chọn ảnh");
+    }
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -137,6 +161,24 @@ export default function CompleteProfileScreen() {
         return;
       }
 
+      // Upload image to Cloudinary if a new image was selected
+      let finalAvatarUrl = avatarUrl;
+      if (selectedImageUri) {
+        try {
+          // Convert URI to File object for Cloudinary upload
+          const response = await fetch(selectedImageUri);
+          const blob = await response.blob();
+          const filename = selectedImageUri.split("/").pop() || "avatar.jpg";
+          const file = new File([blob], filename, { type: "image/jpeg" });
+
+          finalAvatarUrl = await uploadToCloudinary(file);
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          showAlert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
+          return;
+        }
+      }
+
       // Cập nhập profiles table
       const { error: profileError } = await supabase.from("profiles").upsert(
         {
@@ -144,7 +186,7 @@ export default function CompleteProfileScreen() {
           full_name: fullName,
           email: user.email,
           phone,
-          avatar_url: avatarUrl,
+          avatar_url: finalAvatarUrl,
           role,
           location,
           updated_at: new Date().toISOString(),
@@ -234,16 +276,84 @@ export default function CompleteProfileScreen() {
             />
           </View>
 
-          {/* Avatar URL */}
+          {/* Avatar */}
           <View style={styles.field}>
-            <Text style={styles.label}>Ảnh đại diện (URL)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="https://..."
-              placeholderTextColor={theme.colors.textGray}
-              value={avatarUrl}
-              onChangeText={setAvatarUrl}
-            />
+            <Text style={styles.label}>Ảnh đại diện</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: theme.colors.borderLight,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {selectedImageUri ? (
+                  <Image
+                    source={{ uri: selectedImageUri }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                    }}
+                  />
+                ) : avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                    }}
+                  />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="account"
+                    size={40}
+                    color={theme.colors.textGray}
+                  />
+                )}
+              </View>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: theme.colors.primary,
+                  backgroundColor: theme.colors.primarySoftBg,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flexDirection: "row",
+                  gap: 8,
+                }}
+                onPress={handlePickImage}
+              >
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={18}
+                  color={theme.colors.primary}
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color: theme.colors.primary,
+                    fontFamily: Fonts.sans,
+                  }}
+                >
+                  Chọn ảnh
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Vai trò */}

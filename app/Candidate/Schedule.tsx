@@ -153,7 +153,6 @@ function ScheduleContent() {
             ? new Date(interview.end_time)
             : null;
 
-          
           startDate.setHours(startDate.getHours() - 7);
           if (endDate) {
             endDate.setHours(endDate.getHours() - 7);
@@ -163,7 +162,10 @@ function ScheduleContent() {
           const dateStr = `${startDate.getDate()}/${
             startDate.getMonth() + 1
           }/${startDate.getFullYear()}`;
-          const timeStr = `${startDate.getHours().toString().padStart(2, "0")}:${startDate
+          const timeStr = `${startDate
+            .getHours()
+            .toString()
+            .padStart(2, "0")}:${startDate
             .getMinutes()
             .toString()
             .padStart(2, "0")}${
@@ -207,8 +209,8 @@ function ScheduleContent() {
               status === "scheduled"
                 ? "Sắp diễn ra"
                 : status === "completed"
-                  ? "Hoàn thành"
-                  : "Đã hủy",
+                ? "Hoàn thành"
+                : "Đã hủy",
             notes: interview.note,
             appliedDate,
             employerEmail: employerProfile?.email,
@@ -267,14 +269,14 @@ function ScheduleContent() {
     const daysLeft = getDaysUntilInterview(item.startTime);
     const startDate = new Date(item.startTime);
     const endDate = item.endTime ? new Date(item.endTime) : null;
-    
+
     const dateStr = `${startDate.getDate()}/${
       startDate.getMonth() + 1
     }/${startDate.getFullYear()}`;
-    const timeStr = `${startDate.getHours().toString().padStart(2, "0")}:${startDate
-      .getMinutes()
+    const timeStr = `${startDate
+      .getHours()
       .toString()
-      .padStart(2, "0")}${
+      .padStart(2, "0")}:${startDate.getMinutes().toString().padStart(2, "0")}${
       endDate
         ? ` - ${endDate.getHours().toString().padStart(2, "0")}:${endDate
             .getMinutes()
@@ -579,7 +581,8 @@ function ScheduleContent() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingVertical: 12,
+              paddingTop: 36,
+              paddingBottom: 12,
               gap: 12,
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -615,7 +618,14 @@ function ScheduleContent() {
                 />
               </TouchableOpacity>
 
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flex: 1,
+                  marginLeft: 12,
+                }}
+              >
                 <MaterialCommunityIcons
                   name="calendar-check"
                   size={28}
@@ -655,242 +665,243 @@ function ScheduleContent() {
             showsVerticalScrollIndicator={false}
             style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
           >
-
-          {/* Stats */}
-          <View
-            style={{
-              backgroundColor: colors.primarySoftBg,
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 24,
-              flexDirection: "row",
-              justifyContent: "space-around",
-            }}
-          >
-            <View style={{ alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="calendar-check"
-                size={24}
-                color={colors.primary}
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textGray,
-                  marginTop: 8,
-                }}
-              >
-                Tổng số
-              </Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginTop: 4,
-                }}
-              >
-                {schedules.length}
-              </Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="calendar-clock"
-                size={24}
-                color="#4169E1"
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textGray,
-                  marginTop: 8,
-                }}
-              >
-                Sắp diễn ra
-              </Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginTop: 4,
-                }}
-              >
-                {schedules.filter((s) => s.status === "scheduled").length}
-              </Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="check-circle"
-                size={24}
-                color="#00B050"
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textGray,
-                  marginTop: 8,
-                }}
-              >
-                Hoàn thành
-              </Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginTop: 4,
-                }}
-              >
-                {schedules.filter((s) => s.status === "completed").length}
-              </Text>
-            </View>
-          </View>
-
-          {/* Filter Buttons */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginBottom: 24 }}
-          >
-            <TouchableOpacity
-              onPress={() => setFilterStatus(null)}
+            {/* Stats */}
+            <View
               style={{
-                backgroundColor: !filterStatus ? colors.primary : colors.white,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                marginRight: 12,
-                borderWidth: !filterStatus ? 0 : 1,
-                borderColor: colors.borderLight,
+                backgroundColor: colors.primarySoftBg,
+                borderRadius: 12,
+                padding: 16,
+                marginBottom: 24,
+                flexDirection: "row",
+                justifyContent: "space-around",
               }}
             >
-              <Text
-                style={{
-                  color: !filterStatus ? colors.white : colors.textDark,
-                  fontWeight: "500",
-                  fontSize: 13,
-                }}
-              >
-                Tất cả
-              </Text>
-            </TouchableOpacity>
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="calendar-check"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.textGray,
+                    marginTop: 8,
+                  }}
+                >
+                  Tổng số
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 4,
+                  }}
+                >
+                  {schedules.length}
+                </Text>
+              </View>
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="calendar-clock"
+                  size={24}
+                  color="#4169E1"
+                />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.textGray,
+                    marginTop: 8,
+                  }}
+                >
+                  Sắp diễn ra
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 4,
+                  }}
+                >
+                  {schedules.filter((s) => s.status === "scheduled").length}
+                </Text>
+              </View>
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={24}
+                  color="#00B050"
+                />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.textGray,
+                    marginTop: 8,
+                  }}
+                >
+                  Hoàn thành
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 4,
+                  }}
+                >
+                  {schedules.filter((s) => s.status === "completed").length}
+                </Text>
+              </View>
+            </View>
 
-            {[
-              {
-                status: "scheduled",
-                label: "Sắp diễn ra",
-                icon: "calendar-clock",
-              },
-              {
-                status: "completed",
-                label: "Hoàn thành",
-                icon: "check-circle",
-              },
-              { status: "cancelled", label: "Đã hủy", icon: "close-circle" },
-            ].map((filter) => (
+            {/* Filter Buttons */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 24 }}
+            >
               <TouchableOpacity
-                key={filter.status}
-                onPress={() => setFilterStatus(filter.status)}
+                onPress={() => setFilterStatus(null)}
                 style={{
-                  backgroundColor:
-                    filterStatus === filter.status
-                      ? colors.primarySoftBg
-                      : colors.white,
+                  backgroundColor: !filterStatus
+                    ? colors.primary
+                    : colors.white,
                   paddingHorizontal: 16,
                   paddingVertical: 8,
                   borderRadius: 20,
                   marginRight: 12,
-                  borderWidth: 1,
-                  borderColor:
-                    filterStatus === filter.status
-                      ? colors.primary
-                      : colors.borderLight,
+                  borderWidth: !filterStatus ? 0 : 1,
+                  borderColor: colors.borderLight,
                 }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons
-                    name={filter.icon as any}
-                    size={14}
-                    color={
+                <Text
+                  style={{
+                    color: !filterStatus ? colors.white : colors.textDark,
+                    fontWeight: "500",
+                    fontSize: 13,
+                  }}
+                >
+                  Tất cả
+                </Text>
+              </TouchableOpacity>
+
+              {[
+                {
+                  status: "scheduled",
+                  label: "Sắp diễn ra",
+                  icon: "calendar-clock",
+                },
+                {
+                  status: "completed",
+                  label: "Hoàn thành",
+                  icon: "check-circle",
+                },
+                { status: "cancelled", label: "Đã hủy", icon: "close-circle" },
+              ].map((filter) => (
+                <TouchableOpacity
+                  key={filter.status}
+                  onPress={() => setFilterStatus(filter.status)}
+                  style={{
+                    backgroundColor:
+                      filterStatus === filter.status
+                        ? colors.primarySoftBg
+                        : colors.white,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    marginRight: 12,
+                    borderWidth: 1,
+                    borderColor:
                       filterStatus === filter.status
                         ? colors.primary
-                        : colors.textGray
-                    }
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text
-                    style={{
-                      color:
+                        : colors.borderLight,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <MaterialCommunityIcons
+                      name={filter.icon as any}
+                      size={14}
+                      color={
                         filterStatus === filter.status
                           ? colors.primary
-                          : colors.textDark,
-                      fontWeight:
-                        filterStatus === filter.status ? "600" : "500",
-                      fontSize: 13,
-                    }}
-                  >
-                    {filter.label}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                          : colors.textGray
+                      }
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={{
+                        color:
+                          filterStatus === filter.status
+                            ? colors.primary
+                            : colors.textDark,
+                        fontWeight:
+                          filterStatus === filter.status ? "600" : "500",
+                        fontSize: 13,
+                      }}
+                    >
+                      {filter.label}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-          {/* Schedules List */}
-          {loading ? (
-            <View
-              style={{
-                paddingVertical: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : filteredSchedules.length > 0 ? (
-            <FlatList
-              data={filteredSchedules}
-              renderItem={({ item }) => <ScheduleCard item={item} />}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              nestedScrollEnabled={false}
-            />
-          ) : (
-            <View
-              style={{
-                paddingVertical: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MaterialCommunityIcons
-                name="calendar-blank"
-                size={48}
-                color={colors.textGray}
-                style={{ marginBottom: 12 }}
+            {/* Schedules List */}
+            {loading ? (
+              <View
+                style={{
+                  paddingVertical: 40,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : filteredSchedules.length > 0 ? (
+              <FlatList
+                data={filteredSchedules}
+                renderItem={({ item }) => <ScheduleCard item={item} />}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                nestedScrollEnabled={false}
               />
-              <Text
+            ) : (
+              <View
                 style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: colors.textDark,
-                  marginBottom: 8,
+                  paddingVertical: 40,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Chưa có lịch phỏng vấn
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textGray,
-                  textAlign: "center",
-                }}
-              >
-                Các lịch phỏng vấn sẽ xuất hiện ở đây
-              </Text>
-            </View>
-          )}
+                <MaterialCommunityIcons
+                  name="calendar-blank"
+                  size={48}
+                  color={colors.textGray}
+                  style={{ marginBottom: 12 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: colors.textDark,
+                    marginBottom: 8,
+                  }}
+                >
+                  Chưa có lịch phỏng vấn
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: colors.textGray,
+                    textAlign: "center",
+                  }}
+                >
+                  Các lịch phỏng vấn sẽ xuất hiện ở đây
+                </Text>
+              </View>
+            )}
 
             <View style={{ height: 32 }} />
           </ScrollView>

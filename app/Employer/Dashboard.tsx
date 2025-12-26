@@ -289,7 +289,10 @@ function DashboardContent() {
   const displayRecentApps: RecentApplication[] =
     recentApplications && recentApplications.length > 0
       ? recentApplications.map((app: any) => {
-          const st = app.status === "pending" || app.status === "applied" ? "new" : app.status;
+          const st =
+            app.status === "pending" || app.status === "applied"
+              ? "new"
+              : app.status;
           return {
             id: app.id?.toString() || "",
             applicationId: app.id,
@@ -333,7 +336,10 @@ function DashboardContent() {
   const displayAllApps: RecentApplication[] =
     allApplications && allApplications.length > 0
       ? allApplications.map((app: any) => {
-          const st = app.status === "pending" || app.status === "applied" ? "new" : app.status;
+          const st =
+            app.status === "pending" || app.status === "applied"
+              ? "new"
+              : app.status;
           return {
             id: app.id?.toString() || "",
             applicationId: app.id,
@@ -357,16 +363,20 @@ function DashboardContent() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      // Job statuses
       case "active":
         return { bg: "#F6FFED", text: "#52C41A", label: "Đang tuyển" };
       case "closed":
         return { bg: "#FFF1F0", text: "#FF7875", label: "Đã đóng" };
       case "draft":
         return { bg: "#F5F5F5", text: "#8C8C8C", label: "Nháp" };
+      // Application statuses
       case "new":
         return { bg: "#E7F5FF", text: colors.primary, label: "Mới" };
       case "reviewing":
         return { bg: "#FFF7E6", text: "#FF7A45", label: "Đang xem" };
+      case "interview":
+        return { bg: "#F6FFED", text: "#52C41A", label: "Phỏng vấn" };
       case "accepted":
         return { bg: "#F6FFED", text: "#52C41A", label: "Chấp nhận" };
       case "rejected":
@@ -561,10 +571,12 @@ function DashboardContent() {
             flexDirection: "row",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            marginBottom: 12,
+            marginBottom: 0,
           }}
         >
-          <View style={{ flexDirection: "row", flex: 1, alignItems: "center" }}>
+          <View
+            style={{ flexDirection: "row", flex: 1, alignItems: "flex-start" }}
+          >
             <Image
               source={{ uri: item.avatar }}
               style={{

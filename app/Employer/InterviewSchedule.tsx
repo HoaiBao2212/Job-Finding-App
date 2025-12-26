@@ -251,42 +251,59 @@ function InterviewScheduleContent() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       {/* Header */}
       <View
         style={{
           backgroundColor: colors.primary,
           paddingHorizontal: 16,
-          paddingVertical: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+          paddingVertical: 16,
+          paddingTop: 36,
         }}
       >
-        <TouchableOpacity onPress={toggleSidebar}>
-          <MaterialCommunityIcons name="menu" size={28} color={colors.white} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginHorizontal: 12 }}>
-          <Text
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+          <TouchableOpacity
+            onPress={toggleSidebar}
             style={{
-              color: colors.white,
-              fontSize: 18,
-              fontWeight: "600",
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              backgroundColor: "rgba(255,255,255,0.12)",
+              justifyContent: "center",
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.2)",
+              marginRight: 16,
             }}
           >
-            Lịch phỏng vấn
-          </Text>
-          <Text
-            style={{
-              color: colors.white,
-              fontSize: 12,
-              opacity: 0.9,
-              marginTop: 2,
-            }}
-          >
-            Quản lý các buổi phỏng vấn
-          </Text>
+            <MaterialCommunityIcons
+              name="menu"
+              size={22}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 26,
+                fontWeight: "800",
+                color: colors.white,
+                marginBottom: 4,
+              }}
+            >
+              Lịch phỏng vấn 📋
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: "rgba(255,255,255,0.7)",
+                fontWeight: "500",
+              }}
+            >
+              Quản lý các buổi phỏng vấn
+            </Text>
+          </View>
         </View>
       </View>
 

@@ -92,6 +92,10 @@ export default function EmployerJobDetailScreen() {
     }
   };
 
+  const handleViewApplicants = async () => {
+    router.push(`/Employer/CandidateApply?jobId=${jobId}`);
+  };
+
   if (loading) {
     return (
       <EmployerSidebarLayout>
@@ -647,6 +651,7 @@ export default function EmployerJobDetailScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                onPress={handleViewApplicants}
                 style={{
                   flex: 1,
                   paddingVertical: 12,

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   FlatList,
   Image,
+  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -17,7 +18,9 @@ import { authService } from "../../lib/services/authService";
 import { employerService } from "../../lib/services/employerService";
 import { jobService } from "../../lib/services/jobService";
 import AlertModal from "../Component/AlertModal";
-import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
+import EmployerSidebarLayout, {
+  useSidebar,
+} from "../Component/EmployerSidebarLayout";
 import { useAlert } from "../Component/useAlert.hook";
 
 interface Candidate {
@@ -45,14 +48,23 @@ interface Candidate {
 }
 
 export default function CandidateApplyScreen() {
+  return (
+    <EmployerSidebarLayout>
+      <CandidateApplyContent />
+    </EmployerSidebarLayout>
+  );
+}
+
+function CandidateApplyContent() {
   const router = useRouter();
+  const { toggleSidebar, isOpen } = useSidebar();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "new" | "reviewing" | "accepted" | "rejected" | "interview"
   >("all");
-  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(
-    null
-  );
+  const [filterJobId, setFilterJobId] = useState<number | null>(null);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [employerId, setEmployerId] = useState<number | null>(null);
@@ -75,10 +87,11 @@ export default function CandidateApplyScreen() {
       if (employer?.id) {
         setEmployerId(employer.id);
         // Lấy danh sách công việc của employer
-        const jobs = await jobService.getEmployerJobs(employer.id);
+        const employerJobs = await jobService.getEmployerJobs(employer.id);
+        setJobs(employerJobs);
         // Lấy danh sách ứng tuyển cho các công việc kèm thông tin job title
         const allApplications: any[] = [];
-        for (const job of jobs) {
+        for (const job of employerJobs) {
           const apps = await jobService.getApplications(job.id);
           // Thêm job_title vào mỗi application
           let appsWithJobTitle = apps.map((app: any) => ({
@@ -184,7 +197,9 @@ export default function CandidateApplyScreen() {
         candidateEmail.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         filterStatus === "all" || candidate.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      const matchesJob =
+        filterJobId === null || candidate.job_id === filterJobId;
+      return matchesSearch && matchesStatus && matchesJob;
     })
     .sort((a, b) => {
       // Sort by status priority: new, interview, reviewing, accepted, rejected
@@ -237,15 +252,10 @@ export default function CandidateApplyScreen() {
   };
 
   const CandidateCard = ({ item }: { item: Candidate }) => {
-    // Use participant status if interview status, otherwise use application status
-    const statusInfo =
-      item.status === "interview" && item.interview_participant_status
-        ? getParticipantStatusColor(item.interview_participant_status)
-        : getStatusColor(item.status);
+    // Always use application status, not interview participant status
+    const statusInfo = getStatusColor(item.status);
     const candidateName =
       item.candidate_profiles?.profiles?.full_name || "Không xác định";
-    const candidateEmail = item.candidate_profiles?.profiles?.email || "";
-    const candidatePhone = item.candidate_profiles?.profiles?.phone || "";
     const candidateAvatar =
       item.candidate_profiles?.profiles?.avatar_url ||
       "https://i.pravatar.cc/150?img=1";
@@ -255,16 +265,17 @@ export default function CandidateApplyScreen() {
     return (
       <TouchableOpacity
         onPress={() =>
-          setSelectedCandidate(selectedCandidate === item.id ? null : item.id)
+          router.push(
+            `/Employer/CandidateApplicantDetail?applicationId=${item.id}&candidateId=${item.candidate_id}`
+          )
         }
         style={{
           backgroundColor: colors.white,
           borderRadius: 12,
+          padding: 16,
           marginBottom: 12,
           borderWidth: 1,
-          borderColor:
-            selectedCandidate === item.id ? colors.primary : colors.borderLight,
-          overflow: "hidden",
+          borderColor: colors.borderLight,
           shadowColor: "#000",
           shadowOpacity: 0.05,
           shadowRadius: 4,
@@ -272,112 +283,95 @@ export default function CandidateApplyScreen() {
           elevation: 2,
         }}
       >
-        {/* Main Info */}
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
-            padding: 16,
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            marginBottom: 0,
           }}
         >
-          <Image
-            source={{ uri: candidateAvatar }}
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              marginRight: 12,
-              borderWidth: 2,
-              borderColor: colors.primary,
-            }}
-          />
-
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "700",
-                color: colors.textDark,
-              }}
-            >
-              {candidateName}
-            </Text>
-            <Text
-              style={{
-                fontSize: 12,
-                color: colors.textGray,
-                marginTop: 2,
-              }}
-              numberOfLines={1}
-            >
-              {headline || item.job_title || "Không xác định"}
-            </Text>
-            <Text
-              style={{
-                fontSize: 11,
-                color: colors.textGray,
-                marginTop: 2,
-              }}
-            >
-              📧 {candidateEmail.split("@")[0]}
-            </Text>
-          </View>
-
           <View
-            style={{
-              alignItems: "center",
-              marginLeft: 12,
-            }}
+            style={{ flexDirection: "row", flex: 1, alignItems: "flex-start" }}
           >
-            <View
+            <Image
+              source={{ uri: candidateAvatar }}
               style={{
-                width: 50,
-                height: 50,
-                borderRadius: 25,
-                backgroundColor: statusInfo.bg,
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 4,
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                marginRight: 12,
+                backgroundColor: colors.borderLight,
               }}
-            >
+            />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: colors.textDark,
+                  marginBottom: 4,
+                }}
+              >
+                {candidateName}
+              </Text>
               <Text
                 style={{
                   fontSize: 12,
-                  fontWeight: "700",
-                  color: statusInfo.text,
+                  color: colors.textGray,
+                  marginBottom: 6,
                 }}
               >
-                {experience}y
+                {headline || item.job_title || "Không xác định"}
               </Text>
+              {/* Job Title Tag */}
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  backgroundColor: colors.primary + "15",
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  marginBottom: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "600",
+                    color: colors.primary,
+                  }}
+                >
+                  {item.job_title}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="briefcase"
+                  size={12}
+                  color={colors.textGray}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: colors.textGray,
+                  }}
+                >
+                  {experience} năm kinh nghiệm
+                </Text>
+              </View>
             </View>
-            <Text
-              style={{
-                fontSize: 10,
-                color: colors.textGray,
-              }}
-            >
-              Kinh nghiệm
-            </Text>
           </View>
-        </View>
-
-        {/* Status and Date Row */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            backgroundColor: "#F5F5F5",
-            borderTopWidth: 1,
-            borderTopColor: colors.borderLight,
-          }}
-        >
           <View
             style={{
               backgroundColor: statusInfo.bg,
-              paddingHorizontal: 10,
+              paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 6,
             }}
@@ -385,523 +379,495 @@ export default function CandidateApplyScreen() {
             <Text
               style={{
                 fontSize: 11,
-                fontWeight: "600",
+                fontWeight: "700",
                 color: statusInfo.text,
               }}
             >
               {statusInfo.label}
             </Text>
           </View>
-          <Text
-            style={{
-              fontSize: 11,
-              color: colors.textGray,
-            }}
-          >
-            {new Date(item.applied_at).toLocaleDateString("vi-VN")}
-          </Text>
         </View>
-
-        {/* Expanded Details */}
-        {selectedCandidate === item.id && (
-          <View
-            style={{
-              borderTopWidth: 1,
-              borderTopColor: colors.borderLight,
-              padding: 16,
-              backgroundColor: "#FAFAFA",
-            }}
-          >
-            {/* Contact Info */}
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginBottom: 8,
-                }}
-              >
-                Thông tin liên hệ
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 8,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="email"
-                  size={16}
-                  color={colors.primary}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: colors.textDark,
-                  }}
-                  numberOfLines={1}
-                >
-                  {candidateEmail}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="phone"
-                  size={16}
-                  color={colors.primary}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: colors.textDark,
-                  }}
-                  numberOfLines={1}
-                >
-                  {candidatePhone}
-                </Text>
-              </View>
-            </View>
-
-            {/* Experience */}
-            <View
-              style={{
-                marginBottom: 16,
-                paddingTop: 16,
-                borderTopWidth: 1,
-                borderTopColor: colors.borderLight,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginBottom: 8,
-                }}
-              >
-                Kinh nghiệm: {experience} năm
-              </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colors.textGray,
-                }}
-              >
-                Công việc: {item.job_title}
-              </Text>
-            </View>
-
-            {/* Action Buttons */}
-            <View
-              style={{
-                flexDirection: "row",
-                gap: 8,
-                paddingTop: 12,
-                borderTopWidth: 1,
-                borderTopColor: colors.borderLight,
-              }}
-            >
-              {item.status !== "accepted" && item.status !== "rejected" && (
-                <>
-                  <TouchableOpacity
-                    onPress={() => handleStatusChange(item.id, "interview")}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 8,
-                      backgroundColor: "#52C41A",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color: colors.white,
-                      }}
-                    >
-                      Phỏng vấn
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleStatusChange(item.id, "rejected")}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 8,
-                      backgroundColor: "#FF7875",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color: colors.white,
-                      }}
-                    >
-                      Từ chối
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-              {item.status !== "accepted" && item.status !== "rejected" && (
-                <TouchableOpacity
-                  onPress={() => handleStatusChange(item.id, "accepted")}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    backgroundColor: colors.primary,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: colors.white,
-                    }}
-                  >
-                    Chấp nhận
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {(item.status === "accepted" || item.status === "rejected") && (
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    backgroundColor: colors.white,
-                    borderWidth: 1,
-                    borderColor: colors.borderLight,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: colors.textDark,
-                    }}
-                  >
-                    Xem hồ sơ
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <EmployerSidebarLayout>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View
+          style={{
+            backgroundColor: colors.primary,
+            paddingHorizontal: 16,
+            paddingTop: 36,
+            paddingBottom: 24,
+          }}
+        >
           <View
             style={{
-              backgroundColor: colors.primary,
-              paddingHorizontal: 16,
-              paddingTop: 35,
-              paddingBottom: 24,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 0,
             }}
           >
+            <View
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            >
+              <TouchableOpacity
+                onPress={toggleSidebar}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.2)",
+                  marginRight: 16,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name={isOpen ? "close" : "menu"}
+                  size={22}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+              <View>
+                <Text
+                  style={{
+                    fontSize: 26,
+                    fontWeight: "800",
+                    color: colors.white,
+                    marginBottom: 4,
+                  }}
+                >
+                  Người ứng tuyển
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: "500",
+                  }}
+                >
+                  Quản lý các ứng viên ứng tuyển
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Statistics */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            marginTop: 16,
+            marginBottom: 20,
+          }}
+        >
+          <FlatList
+            data={[
+              {
+                id: "total",
+                icon: "account-multiple",
+                label: "Tổng",
+                value: statistics.total,
+                color: "#E7F5FF",
+              },
+              {
+                id: "new",
+                icon: "star",
+                label: "Mới",
+                value: statistics.new,
+                color: "#E7F5FF",
+              },
+              {
+                id: "interview",
+                icon: "phone",
+                label: "Phỏng vấn",
+                value: statistics.interview,
+                color: "#F6FFED",
+              },
+              {
+                id: "accepted",
+                icon: "check-circle",
+                label: "Chấp nhận",
+                value: statistics.accepted,
+                color: "#F6FFED",
+              },
+            ]}
+            renderItem={({ item }) => (
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: item.color,
+                  borderRadius: 12,
+                  padding: 12,
+                  marginRight: 8,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name={item.icon as any}
+                  size={20}
+                  color={colors.primary}
+                  style={{ marginBottom: 6 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "700",
+                    color: colors.primary,
+                  }}
+                >
+                  {item.value}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: colors.textGray,
+                    marginTop: 2,
+                    textAlign: "center",
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+            horizontal
+            scrollEnabled={false}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+
+        {/* Search and Filters */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            marginBottom: 20,
+          }}
+        >
+          {/* Search */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.borderLight,
+              paddingHorizontal: 12,
+              marginBottom: 12,
+              height: 44,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="magnify"
+              size={20}
+              color={colors.textGray}
+              style={{ marginRight: 8 }}
+            />
+            <TextInput
+              placeholder="Tìm ứng viên..."
+              placeholderTextColor={colors.textGray}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={{
+                flex: 1,
+                fontSize: 14,
+                color: colors.textDark,
+              }}
+            />
+          </View>
+
+          {/* Job Filter Button */}
+          <TouchableOpacity
+            onPress={() => setShowJobModal(true)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: filterJobId ? colors.primary : colors.borderLight,
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+              marginBottom: 12,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="briefcase-variant"
+              size={18}
+              color={filterJobId ? colors.primary : colors.textGray}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 14,
+                color: filterJobId ? colors.primary : colors.textGray,
+                fontWeight: filterJobId ? "600" : "400",
+              }}
+            >
+              {filterJobId
+                ? jobs.find((j) => j.id === filterJobId)?.title ||
+                  "Chọn công việc"
+                : "Chọn công việc"}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={20}
+              color={filterJobId ? colors.primary : colors.textGray}
+            />
+          </TouchableOpacity>
+
+          {/* Filter Tabs */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+          >
+            {(
+              [
+                "all",
+                "new",
+                "reviewing",
+                "interview",
+                "accepted",
+                "rejected",
+              ] as const
+            ).map((status) => (
+              <TouchableOpacity
+                key={status}
+                onPress={() => setFilterStatus(status)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor:
+                    filterStatus === status ? colors.primary : colors.white,
+                  borderWidth: 1,
+                  borderColor:
+                    filterStatus === status
+                      ? colors.primary
+                      : colors.borderLight,
+                  marginRight: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color:
+                      filterStatus === status ? colors.white : colors.textDark,
+                  }}
+                >
+                  {status === "all"
+                    ? "Tất cả"
+                    : status === "new"
+                    ? "Mới"
+                    : status === "reviewing"
+                    ? "Xem"
+                    : status === "interview"
+                    ? "Phỏng vấn"
+                    : status === "accepted"
+                    ? "Chấp nhận"
+                    : "Từ chối"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Candidate List */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingBottom: 24,
+          }}
+        >
+          {filteredCandidates.length > 0 ? (
+            <>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textGray,
+                  marginBottom: 12,
+                }}
+              >
+                Tìm thấy {filteredCandidates.length} ứng viên
+              </Text>
+              {filteredCandidates.map((candidate) => (
+                <CandidateCard key={candidate.id} item={candidate} />
+              ))}
+            </>
+          ) : (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 40,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="account-search"
+                size={48}
+                color={colors.textGray}
+                style={{ marginBottom: 12 }}
+              />
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                }}
+              >
+                Không tìm thấy ứng viên
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textGray,
+                  marginTop: 8,
+                  textAlign: "center",
+                }}
+              >
+                Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Job Selection Modal */}
+      <Modal
+        visible={showJobModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowJobModal(false)}
+      >
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colors.white,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              marginTop: 100,
+            }}
+          >
+            {/* Modal Header */}
             <View
               style={{
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.borderLight,
               }}
             >
-              <TouchableOpacity onPress={() => router.back()}>
-                <MaterialCommunityIcons
-                  name="chevron-left"
-                  size={28}
-                  color={colors.white}
-                />
-              </TouchableOpacity>
               <Text
                 style={{
                   fontSize: 18,
                   fontWeight: "700",
-                  color: colors.white,
-                }}
-              >
-                Người ứng tuyển
-              </Text>
-              <View style={{ width: 28 }} />
-            </View>
-          </View>
-
-          {/* Statistics */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              marginTop: 16,
-              marginBottom: 20,
-            }}
-          >
-            <FlatList
-              data={[
-                {
-                  id: "total",
-                  icon: "account-multiple",
-                  label: "Tổng",
-                  value: statistics.total,
-                  color: "#E7F5FF",
-                },
-                {
-                  id: "new",
-                  icon: "star",
-                  label: "Mới",
-                  value: statistics.new,
-                  color: "#E7F5FF",
-                },
-                {
-                  id: "interview",
-                  icon: "phone",
-                  label: "Phỏng vấn",
-                  value: statistics.interview,
-                  color: "#F6FFED",
-                },
-                {
-                  id: "accepted",
-                  icon: "check-circle",
-                  label: "Chấp nhận",
-                  value: statistics.accepted,
-                  color: "#F6FFED",
-                },
-              ]}
-              renderItem={({ item }) => (
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: item.color,
-                    borderRadius: 12,
-                    padding: 12,
-                    marginRight: 8,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name={item.icon as any}
-                    size={20}
-                    color={colors.primary}
-                    style={{ marginBottom: 6 }}
-                  />
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "700",
-                      color: colors.primary,
-                    }}
-                  >
-                    {item.value}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: colors.textGray,
-                      marginTop: 2,
-                      textAlign: "center",
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              )}
-              keyExtractor={(item) => item.id}
-              horizontal
-              scrollEnabled={false}
-              showsHorizontalScrollIndicator={false}
-            />
-          </View>
-
-          {/* Search and Filters */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              marginBottom: 20,
-            }}
-          >
-            {/* Search */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: colors.white,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: colors.borderLight,
-                paddingHorizontal: 12,
-                marginBottom: 12,
-                height: 44,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="magnify"
-                size={20}
-                color={colors.textGray}
-                style={{ marginRight: 8 }}
-              />
-              <TextInput
-                placeholder="Tìm ứng viên..."
-                placeholderTextColor={colors.textGray}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={{
-                  flex: 1,
-                  fontSize: 14,
                   color: colors.textDark,
                 }}
-              />
+              >
+                Chọn công việc
+              </Text>
+              <TouchableOpacity onPress={() => setShowJobModal(false)}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={colors.textDark}
+                />
+              </TouchableOpacity>
             </View>
 
-            {/* Filter Tabs */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 12 }}
-            >
-              {(
-                [
-                  "all",
-                  "new",
-                  "reviewing",
-                  "interview",
-                  "accepted",
-                  "rejected",
-                ] as const
-              ).map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  onPress={() => setFilterStatus(status)}
+            {/* Job List */}
+            <ScrollView style={{ flex: 1 }}>
+              {/* Clear Filter Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setFilterJobId(null);
+                  setShowJobModal(false);
+                }}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.borderLight,
+                  backgroundColor:
+                    filterJobId === null ? colors.primary + "20" : colors.white,
+                }}
+              >
+                <Text
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: 20,
+                    fontSize: 14,
+                    fontWeight: filterJobId === null ? "700" : "500",
+                    color:
+                      filterJobId === null ? colors.primary : colors.textDark,
+                  }}
+                >
+                  Tất cả công việc
+                </Text>
+              </TouchableOpacity>
+
+              {jobs.map((job) => (
+                <TouchableOpacity
+                  key={job.id}
+                  onPress={() => {
+                    setFilterJobId(job.id);
+                    setShowJobModal(false);
+                  }}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.borderLight,
                     backgroundColor:
-                      filterStatus === status ? colors.primary : colors.white,
-                    borderWidth: 1,
-                    borderColor:
-                      filterStatus === status
-                        ? colors.primary
-                        : colors.borderLight,
-                    marginRight: 8,
+                      filterJobId === job.id
+                        ? colors.primary + "20"
+                        : colors.white,
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 12,
-                      fontWeight: "600",
+                      fontSize: 14,
+                      fontWeight: filterJobId === job.id ? "700" : "500",
                       color:
-                        filterStatus === status
-                          ? colors.white
+                        filterJobId === job.id
+                          ? colors.primary
                           : colors.textDark,
                     }}
                   >
-                    {status === "all"
-                      ? "Tất cả"
-                      : status === "new"
-                      ? "Mới"
-                      : status === "reviewing"
-                      ? "Xem"
-                      : status === "interview"
-                      ? "Phỏng vấn"
-                      : status === "accepted"
-                      ? "Chấp nhận"
-                      : "Từ chối"}
+                    {job.title}
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
+        </SafeAreaView>
+      </Modal>
 
-          {/* Candidate List */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              paddingBottom: 24,
-            }}
-          >
-            {filteredCandidates.length > 0 ? (
-              <>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: colors.textGray,
-                    marginBottom: 12,
-                  }}
-                >
-                  Tìm thấy {filteredCandidates.length} ứng viên
-                </Text>
-                {filteredCandidates.map((candidate) => (
-                  <CandidateCard key={candidate.id} item={candidate} />
-                ))}
-              </>
-            ) : (
-              <View
-                style={{
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingVertical: 40,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="account-search"
-                  size={48}
-                  color={colors.textGray}
-                  style={{ marginBottom: 12 }}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: colors.textDark,
-                  }}
-                >
-                  Không tìm thấy ứng viên
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: colors.textGray,
-                    marginTop: 8,
-                    textAlign: "center",
-                  }}
-                >
-                  Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
-                </Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Alert Modal */}
-        <AlertModal
-          visible={alertState.visible}
-          title={alertState.title}
-          message={alertState.message}
-          buttons={alertState.buttons}
-          onDismiss={hideAlert}
-        />
-      </SafeAreaView>
-    </EmployerSidebarLayout>
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
+      />
+    </SafeAreaView>
   );
 }

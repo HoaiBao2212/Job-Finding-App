@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
   Share,
@@ -16,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
 import { authService } from "../../lib/services/authService";
 import { supabase } from "../../lib/supabase";
+import AlertModal from "../Component/AlertModal";
 import SidebarLayout from "../Component/SidebarLayout";
 
 interface JobDetail {
@@ -47,7 +47,6 @@ export default function JobDetailScreen() {
 
   const [loading, setLoading] = React.useState(true);
   const [job, setJob] = React.useState<JobDetail | null>(null);
-  const [isSaved, setIsSaved] = React.useState(false);
   const [showApplyModal, setShowApplyModal] = React.useState(false);
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [candidateProfile, setCandidateProfile] = React.useState<any>(null);
@@ -55,6 +54,21 @@ export default function JobDetailScreen() {
   const [applicationStatus, setApplicationStatus] = React.useState<
     string | null
   >(null);
+  const [alertState, setAlertState] = React.useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons: Array<{
+      text: string;
+      onPress?: () => void;
+      style?: "default" | "cancel" | "destructive";
+    }>;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
 
   React.useEffect(() => {
     console.log("JobDetail params:", params);
@@ -133,13 +147,85 @@ export default function JobDetailScreen() {
   };
 
   const handleApplyModal = async () => {
-    await loadUserProfile();
-    setShowApplyModal(true);
+    try {
+      const user = await authService.getCurrentUser();
+      console.log("Current user:", user?.id);
+
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Check if candidate profile exists
+      const { data: candidateData, error } = await supabase
+        .from("candidate_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      console.log("Candidate profile check - Error:", error);
+      console.log("Candidate profile check - Data:", candidateData);
+
+      if (error || !candidateData) {
+        // No candidate profile found
+        console.log("No candidate profile found, showing alert");
+        setAlertState({
+          visible: true,
+          title: "Hồ sơ chưa hoàn thành",
+          message:
+            "Bạn cần hoàn thành hồ sơ cá nhân trước khi ứng tuyển. Hãy tạo hồ sơ ngay!",
+          buttons: [
+            {
+              text: "Hủy",
+              onPress: () => setAlertState({ ...alertState, visible: false }),
+              style: "cancel",
+            },
+            {
+              text: "Tạo hồ sơ",
+              onPress: () => {
+                setAlertState({ ...alertState, visible: false });
+                router.push("/Candidate/EditProfile");
+              },
+              style: "default",
+            },
+          ],
+        });
+        return;
+      }
+
+      // Profile exists, load user profile and show modal
+      console.log("Candidate profile exists, showing apply modal");
+      await loadUserProfile();
+      setShowApplyModal(true);
+    } catch (error) {
+      console.error("Error checking candidate profile:", error);
+      setAlertState({
+        visible: true,
+        title: "Lỗi",
+        message: "Không thể kiểm tra hồ sơ. Vui lòng thử lại.",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => setAlertState({ ...alertState, visible: false }),
+          },
+        ],
+      });
+    }
   };
 
   const handleSubmitApplication = async () => {
     if (!job || !candidateProfile) {
-      Alert.alert("Lỗi", "Không thể tạo đơn ứng tuyển");
+      setAlertState({
+        visible: true,
+        title: "Lỗi",
+        message: "Không thể tạo đơn ứng tuyển",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => setAlertState({ ...alertState, visible: false }),
+          },
+        ],
+      });
       return;
     }
 
@@ -161,15 +247,30 @@ export default function JobDetailScreen() {
       // Reload application status from database
       await checkApplicationStatus();
       setShowApplyModal(false);
-      Alert.alert("Thành công", "Đơn ứng tuyển đã được gửi!", [
-        {
-          text: "OK",
-          onPress: () => {},
-        },
-      ]);
+      setAlertState({
+        visible: true,
+        title: "Thành công",
+        message: "Đơn ứng tuyển đã được gửi!",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => setAlertState({ ...alertState, visible: false }),
+          },
+        ],
+      });
     } catch (error) {
       console.error("Error submitting application:", error);
-      Alert.alert("Lỗi", "Không thể gửi đơn ứng tuyển");
+      setAlertState({
+        visible: true,
+        title: "Lỗi",
+        message: "Không thể gửi đơn ứng tuyển",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => setAlertState({ ...alertState, visible: false }),
+          },
+        ],
+      });
     } finally {
       setApplying(false);
     }
@@ -229,7 +330,17 @@ export default function JobDetailScreen() {
       }
     } catch (error) {
       console.error("Error loading job detail:", error);
-      Alert.alert("Lỗi", "Không thể tải chi tiết công việc");
+      setAlertState({
+        visible: true,
+        title: "Lỗi",
+        message: "Không thể tải chi tiết công việc",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => setAlertState({ ...alertState, visible: false }),
+          },
+        ],
+      });
     } finally {
       setLoading(false);
     }
@@ -238,12 +349,27 @@ export default function JobDetailScreen() {
   const incrementViewCount = async (id: number | null) => {
     if (!id) return;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("jobs")
-        .update({ view_count: (job?.view_count || 0) + 1 })
-        .eq("id", id);
+        .select("view_count")
+        .eq("id", id)
+        .single();
 
       if (error) throw error;
+
+      const currentCount = data?.view_count || 0;
+
+      const { error: updateError } = await supabase
+        .from("jobs")
+        .update({ view_count: currentCount + 1 })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      // Update local job state
+      setJob((prev) =>
+        prev ? { ...prev, view_count: currentCount + 1 } : prev
+      );
     } catch (error) {
       console.error("Error incrementing view count:", error);
     }
@@ -507,18 +633,6 @@ export default function JobDetailScreen() {
                   {job.companies?.name || "Công ty"}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => setIsSaved(!isSaved)}
-                style={{
-                  padding: 8,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name={isSaved ? "heart" : "heart-outline"}
-                  size={28}
-                  color={isSaved ? "#E63946" : colors.textGray}
-                />
-              </TouchableOpacity>
             </View>
 
             {/* Quick Info */}
@@ -1409,6 +1523,15 @@ export default function JobDetailScreen() {
             </View>
           </SafeAreaView>
         </Modal>
+
+        {/* Custom Alert Modal */}
+        <AlertModal
+          visible={alertState.visible}
+          title={alertState.title}
+          message={alertState.message}
+          buttons={alertState.buttons}
+          onDismiss={() => setAlertState({ ...alertState, visible: false })}
+        />
       </SafeAreaView>
     </SidebarLayout>
   );

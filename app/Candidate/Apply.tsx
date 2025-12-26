@@ -117,7 +117,9 @@ function ApplyContent() {
 
           const salaryRange =
             job?.salary_min && job?.salary_max
-              ? `${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()} ${job.salary_currency || "VND"}`
+              ? `${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()} ${
+                  job.salary_currency || "VND"
+                }`
               : "Thương lượng";
 
           const appliedDate = getTimeAgo(jobApp.applied_at);
@@ -165,7 +167,8 @@ function ApplyContent() {
 
     if (secondsDiff < 60) return "Vừa xong";
     if (secondsDiff < 3600) return `${Math.floor(secondsDiff / 60)} phút trước`;
-    if (secondsDiff < 86400) return `${Math.floor(secondsDiff / 3600)} giờ trước`;
+    if (secondsDiff < 86400)
+      return `${Math.floor(secondsDiff / 3600)} giờ trước`;
     if (secondsDiff < 604800)
       return `${Math.floor(secondsDiff / 86400)} ngày trước`;
     return `${Math.floor(secondsDiff / 604800)} tuần trước`;
@@ -346,7 +349,8 @@ function ApplyContent() {
             style={{
               backgroundColor: colors.primary,
               paddingHorizontal: 16,
-              paddingVertical: 12,
+              paddingTop: 36,
+              paddingBottom: 12,
               gap: 12,
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -382,7 +386,14 @@ function ApplyContent() {
                 />
               </TouchableOpacity>
 
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flex: 1,
+                  marginLeft: 12,
+                }}
+              >
                 <MaterialCommunityIcons
                   name="file-check"
                   size={28}
@@ -501,132 +512,138 @@ function ApplyContent() {
               </View>
             </View>
 
-          {/* Filter Buttons */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginBottom: 24 }}
-          >
-            <TouchableOpacity
-              onPress={() => setFilterStatus(null)}
-              style={{
-                backgroundColor: !filterStatus ? colors.primary : colors.white,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                marginRight: 12,
-                borderWidth: !filterStatus ? 0 : 1,
-                borderColor: colors.borderLight,
-              }}
+            {/* Filter Buttons */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 24 }}
             >
-              <Text
-                style={{
-                  color: !filterStatus ? colors.white : colors.textDark,
-                  fontWeight: "500",
-                  fontSize: 13,
-                }}
-              >
-                Tất cả
-              </Text>
-            </TouchableOpacity>
-
-            {[
-              { status: "pending", label: "Chờ xử lý", icon: "clock-outline" },
-              { status: "interview", label: "Phỏng vấn", icon: "video" },
-              { status: "rejected", label: "Từ chối", icon: "close-circle" },
-            ].map((filter) => (
               <TouchableOpacity
-                key={filter.status}
-                onPress={() => setFilterStatus(filter.status)}
+                onPress={() => setFilterStatus(null)}
                 style={{
-                  backgroundColor:
-                    filterStatus === filter.status
-                      ? colors.primarySoftBg
-                      : colors.white,
+                  backgroundColor: !filterStatus
+                    ? colors.primary
+                    : colors.white,
                   paddingHorizontal: 16,
                   paddingVertical: 8,
                   borderRadius: 20,
                   marginRight: 12,
-                  borderWidth: 1,
-                  borderColor:
-                    filterStatus === filter.status
-                      ? colors.primary
-                      : colors.borderLight,
+                  borderWidth: !filterStatus ? 0 : 1,
+                  borderColor: colors.borderLight,
                 }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons
-                    name={filter.icon as any}
-                    size={14}
-                    color={
+                <Text
+                  style={{
+                    color: !filterStatus ? colors.white : colors.textDark,
+                    fontWeight: "500",
+                    fontSize: 13,
+                  }}
+                >
+                  Tất cả
+                </Text>
+              </TouchableOpacity>
+
+              {[
+                {
+                  status: "pending",
+                  label: "Chờ xử lý",
+                  icon: "clock-outline",
+                },
+                { status: "interview", label: "Phỏng vấn", icon: "video" },
+                { status: "rejected", label: "Từ chối", icon: "close-circle" },
+              ].map((filter) => (
+                <TouchableOpacity
+                  key={filter.status}
+                  onPress={() => setFilterStatus(filter.status)}
+                  style={{
+                    backgroundColor:
+                      filterStatus === filter.status
+                        ? colors.primarySoftBg
+                        : colors.white,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    marginRight: 12,
+                    borderWidth: 1,
+                    borderColor:
                       filterStatus === filter.status
                         ? colors.primary
-                        : colors.textGray
-                    }
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text
-                    style={{
-                      color:
+                        : colors.borderLight,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <MaterialCommunityIcons
+                      name={filter.icon as any}
+                      size={14}
+                      color={
                         filterStatus === filter.status
                           ? colors.primary
-                          : colors.textDark,
-                      fontWeight:
-                        filterStatus === filter.status ? "600" : "500",
-                      fontSize: 13,
-                    }}
-                  >
-                    {filter.label}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                          : colors.textGray
+                      }
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={{
+                        color:
+                          filterStatus === filter.status
+                            ? colors.primary
+                            : colors.textDark,
+                        fontWeight:
+                          filterStatus === filter.status ? "600" : "500",
+                        fontSize: 13,
+                      }}
+                    >
+                      {filter.label}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-          {/* Applications List */}
-          {filteredApplications.length > 0 ? (
-            <FlatList
-              data={filteredApplications}
-              renderItem={ApplicationCard}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              nestedScrollEnabled={false}
-            />
-          ) : (
-            <View
-              style={{
-                paddingVertical: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MaterialCommunityIcons
-                name="file-document-outline"
-                size={48}
-                color={colors.textGray}
-                style={{ marginBottom: 12 }}
+            {/* Applications List */}
+            {filteredApplications.length > 0 ? (
+              <FlatList
+                data={filteredApplications}
+                renderItem={ApplicationCard}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                nestedScrollEnabled={false}
               />
-              <Text
+            ) : (
+              <View
                 style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: colors.textDark,
-                  marginBottom: 8,
+                  paddingVertical: 40,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Không có đơn ứng tuyển
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: colors.textGray,
-                  textAlign: "center",
-                }}
-              >
-                Hãy tìm và ứng tuyển các công việc phù hợp
-              </Text>
-            </View>
-          )}
+                <MaterialCommunityIcons
+                  name="file-document-outline"
+                  size={48}
+                  color={colors.textGray}
+                  style={{ marginBottom: 12 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: colors.textDark,
+                    marginBottom: 8,
+                  }}
+                >
+                  Không có đơn ứng tuyển
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: colors.textGray,
+                    textAlign: "center",
+                  }}
+                >
+                  Hãy tìm và ứng tuyển các công việc phù hợp
+                </Text>
+              </View>
+            )}
 
             <View style={{ height: 32 }} />
           </ScrollView>

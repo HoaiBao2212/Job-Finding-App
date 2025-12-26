@@ -54,8 +54,8 @@ export default function CompanyDetailScreen() {
       // Lấy employer profile của user (bao gồm thông tin company)
       const employer = await employerService.getEmployerProfile(user.id);
       if (!employer || !employer.companies) {
-        showAlert("Lỗi", "Không tìm thấy thông tin công ty của bạn");
-        setLoading(false);
+        // Nếu không có công ty, chuyển hướng sang trang tạo công ty
+        router.replace("/Employer/Companies");
         return;
       }
 

@@ -1,15 +1,14 @@
 import { colors, Fonts } from "@/constants/theme";
 import { authService } from "@/lib/services/authService";
+import { uploadToCloudinary } from "@/lib/services/cloudinaryService";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import * as ImagePicker from "expo-image-picker";
+
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
-  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -20,6 +19,7 @@ import {
   View,
 } from "react-native";
 import AlertModal from "../Component/AlertModal";
+import EmployerLogoUpload from "../Component/EmployerLogoUpload";
 import { useAlert } from "../Component/useAlert.hook";
 
 const VIETNAM_LOCATIONS = [
@@ -80,8 +80,6 @@ export default function CompaniesScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Company info
   const [companyName, setCompanyName] = useState("");
@@ -90,6 +88,8 @@ export default function CompaniesScreen() {
   const [companySize, setCompanySize] = useState("");
   const [website, setWebsite] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [selectedImageUri, setSelectedImageUri] = useState<string | undefined>();
+  const [selectedImageFile, setSelectedImageFile] = useState<File | undefined>();
 
   useEffect(() => {
     loadExistingData();
@@ -135,254 +135,6 @@ export default function CompaniesScreen() {
     }
   };
 
-  const uploadImageToSupabase = async (imageUri: string, fileName: string) => {
-    try {
-      const user = await authService.getCurrentUser();
-      if (!user) {
-        router.push("/(auth)/login");
-        return null;
-      }
-
-      const filePath = `company-logos/${fileName}`;
-
-      // Đọc file và tải lên
-      const response = await fetch(imageUri);
-      const arrayBuffer = await response.arrayBuffer();
-
-      const { error: uploadError } = await supabase.storage
-        .from("company-logos")
-        .upload(filePath, arrayBuffer, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Lấy URL công khai của ảnh
-      const { data: publicUrlData } = supabase.storage
-        .from("company-logos")
-        .getPublicUrl(filePath);
-
-      return publicUrlData.publicUrl;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const handleUploadLogoMobile = async () => {
-    try {
-      // Yêu cầu quyền truy cập thư viện ảnh
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permission.granted) {
-        showAlert(
-          "Quyền bị từ chối",
-          "Vui lòng cấp quyền truy cập thư viện ảnh."
-        );
-        return;
-      }
-
-      // Chọn ảnh từ thư viện
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (result.canceled) {
-        return;
-      }
-
-      const imageUri = result.assets[0].uri;
-      setUploading(true);
-
-      // Tải ảnh lên Supabase Storage
-      showAlert(
-        "Đang upload",
-        "Vui lòng đợi trong khi ảnh được tải lên...",
-        []
-      );
-
-      const user = await authService.getCurrentUser();
-      if (!user) {
-        router.push("/(auth)/login");
-        setUploading(false);
-        return;
-      }
-
-      // Tạo tên file duy nhất
-      const fileName = `logo_${user.id}_${Date.now()}.jpg`;
-
-      const publicUrl = await uploadImageToSupabase(imageUri, fileName);
-      if (!publicUrl) throw new Error("Upload failed");
-
-      // Cập nhật state
-      setLogoUrl(publicUrl);
-      hideAlert();
-
-      showAlert("Thành công", "Logo đã được upload thành công!", [
-        {
-          text: "OK",
-          style: "default",
-          onPress: () => hideAlert(),
-        },
-      ]);
-    } catch (error: any) {
-      console.error("Error uploading logo:", error);
-      hideAlert();
-      showAlert(
-        "Lỗi",
-        error?.message || "Không thể upload ảnh. Vui lòng thử lại."
-      );
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleUploadLogoWeb = async (event: any) => {
-    try {
-      const file = event?.target?.files?.[0];
-      if (!file) return;
-
-      // Kiểm tra loại file
-      if (!file.type.startsWith("image/")) {
-        showAlert("Lỗi", "Vui lòng chọn một tệp ảnh.");
-        return;
-      }
-
-      // Kiểm tra kích thước file (tối đa 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        showAlert("Lỗi", "Kích thước ảnh không được vượt quá 5MB.");
-        return;
-      }
-
-      setUploading(true);
-      showAlert(
-        "Đang upload",
-        "Vui lòng đợi trong khi ảnh được tải lên...",
-        []
-      );
-
-      const user = await authService.getCurrentUser();
-      if (!user) {
-        router.push("/(auth)/login");
-        setUploading(false);
-        return;
-      }
-
-      // Đọc file
-      const fileData = await file.arrayBuffer();
-      const fileName = `logo_${user.id}_${Date.now()}_${file.name}`;
-      const filePath = `company-logos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("company-logos")
-        .upload(filePath, fileData, {
-          contentType: file.type,
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Lấy URL công khai của ảnh
-      const { data: publicUrlData } = supabase.storage
-        .from("company-logos")
-        .getPublicUrl(filePath);
-
-      const publicUrl = publicUrlData.publicUrl;
-
-      // Cập nhật state
-      setLogoUrl(publicUrl);
-      hideAlert();
-
-      showAlert("Thành công", "Logo đã được upload thành công!", [
-        {
-          text: "OK",
-          style: "default",
-          onPress: () => hideAlert(),
-        },
-      ]);
-
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    } catch (error: any) {
-      console.error("Error uploading logo:", error);
-      hideAlert();
-      showAlert(
-        "Lỗi",
-        error?.message || "Không thể upload ảnh. Vui lòng thử lại."
-      );
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleUploadLogoLocal = async () => {
-    try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        showAlert(
-          "Quyền bị từ chối",
-          "Vui lòng cấp quyền truy cập thư viện ảnh."
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (result.canceled) return;
-
-      const imageUri = result.assets[0].uri;
-      setLoading(true);
-      showAlert("Đang xử lý", "Đang xử lý ảnh...", []);
-
-      try {
-        // Lưu URI ảnh đã chọn - URI này sẽ trỏ đến ảnh từ device
-        // Trên thiết bị thực, URI này có thể được lưu và sử dụng sau
-        // Hoặc upload lên Supabase
-        setLogoUrl(imageUri);
-        hideAlert();
-
-        showAlert("Thành công", "Logo đã được chọn từ thư viện ảnh", [
-          {
-            text: "OK",
-            style: "default",
-            onPress: () => hideAlert(),
-          },
-        ]);
-      } catch (processError) {
-        throw processError;
-      }
-    } catch (error: any) {
-      console.error("Error selecting logo:", error);
-      hideAlert();
-      showAlert(
-        "Lỗi",
-        error?.message || "Không thể chọn ảnh. Vui lòng thử lại."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUploadLogo = () => {
-    if (Platform.OS === "web") {
-      fileInputRef.current?.click();
-    } else {
-      handleUploadLogoLocal();
-    }
-  };
-
   const handleSave = async () => {
     if (!companyName || !companySize || !industry) {
       showAlert(
@@ -398,6 +150,18 @@ export default function CompaniesScreen() {
       if (!user) {
         router.push("/(auth)/login");
         return;
+      }
+
+      // Upload image to Cloudinary if selected
+      let finalLogoUrl = logoUrl;
+      if (selectedImageFile) {
+        try {
+          finalLogoUrl = await uploadToCloudinary(selectedImageFile);
+        } catch (error) {
+          console.error("Error uploading logo:", error);
+          showAlert("Lỗi", "Không thể upload logo. Vui lòng thử lại.");
+          return;
+        }
       }
 
       // Check if employer exists
@@ -419,7 +183,7 @@ export default function CompaniesScreen() {
             company_size: companySize,
             industry: industry,
             website: website || null,
-            logo_url: logoUrl || null,
+            logo_url: finalLogoUrl || null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingEmployer.company_id);
@@ -436,7 +200,7 @@ export default function CompaniesScreen() {
             company_size: companySize,
             industry: industry,
             website: website || null,
-            logo_url: logoUrl || null,
+            logo_url: finalLogoUrl || null,
           })
           .select()
           .single();
@@ -489,17 +253,6 @@ export default function CompaniesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
-      {/* Hidden file input cho web */}
-      {Platform.OS === "web" && (
-        <input
-          ref={fileInputRef as any}
-          type="file"
-          accept="image/*"
-          onChange={handleUploadLogoWeb}
-          style={styles.hiddenFileInput}
-          title="Upload company logo"
-        />
-      )}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.container}
@@ -525,70 +278,14 @@ export default function CompaniesScreen() {
         </View>
 
         {/* Company Logo Section */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Logo công ty</Text>
-          <View style={styles.logoContainer}>
-            {logoUrl ? (
-              <Image
-                source={{ uri: logoUrl }}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  resizeMode: "contain",
-                }}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="briefcase"
-                size={48}
-                color={colors.borderLight}
-              />
-            )}
-          </View>
-          <View style={{ marginBottom: 12, gap: 10 }}>
-            <TextInput
-              style={styles.input}
-              placeholder="URL ảnh logo (không bắt buộc)"
-              placeholderTextColor={colors.textGray}
-              value={logoUrl}
-              onChangeText={setLogoUrl}
-            />
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 12,
-                paddingVertical: 12,
-                alignItems: "center" as const,
-                justifyContent: "center" as const,
-                flexDirection: "row" as const,
-                opacity: uploading ? 0.6 : 1,
-              }}
-              onPress={handleUploadLogo}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <ActivityIndicator color={colors.white} style={{ marginRight: 8 }} />
-              ) : (
-                <MaterialCommunityIcons
-                  name="cloud-upload"
-                  size={20}
-                  color={colors.white}
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              <Text
-                style={{
-                  color: colors.white,
-                  fontSize: 14,
-                  fontWeight: "600" as const,
-                  fontFamily: Fonts.sans,
-                }}
-              >
-                {uploading ? "Đang lưu..." : "Upload Logo"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <EmployerLogoUpload
+          initialLogoUrl={logoUrl}
+          selectedImageUri={selectedImageUri}
+          onImageSelected={(uri, file) => {
+            setSelectedImageUri(uri);
+            setSelectedImageFile(file);
+          }}
+        />
 
         {/* Company Basic Info */}
         <View style={styles.card}>

@@ -9,7 +9,7 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, Fonts } from "../../constants/theme";
@@ -131,14 +131,53 @@ function JobFindingContent() {
     return typeMap[jobType || ""] || jobType || "";
   };
 
+  const incrementJobView = async (jobId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("view_count")
+        .eq("id", jobId)
+        .single();
+
+      if (error) throw error;
+
+      const currentCount = data?.view_count || 0;
+
+      const { error: updateError } = await supabase
+        .from("jobs")
+        .update({ view_count: currentCount + 1 })
+        .eq("id", jobId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setFilteredJobs((prev) =>
+        prev.map((job) =>
+          job.id === jobId
+            ? { ...job, view_count: (job.view_count || 0) + 1 }
+            : job
+        )
+      );
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === jobId
+            ? { ...job, view_count: (job.view_count || 0) + 1 }
+            : job
+        )
+      );
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
+    }
+  };
+
   const JobCard = ({ item }: { item: Job }) => (
     <TouchableOpacity
-      onPress={() =>
+      onPress={() => {
         router.push({
           pathname: `/Candidate/JobDetail`,
           params: { id: item.id.toString() },
-        } as any)
-      }
+        } as any);
+      }}
       style={{
         backgroundColor: colors.white,
         borderRadius: 12,
@@ -262,7 +301,8 @@ function JobFindingContent() {
         style={{
           backgroundColor: colors.primary,
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingTop: 36,
+          paddingBottom: 12,
           gap: 12,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
@@ -298,7 +338,14 @@ function JobFindingContent() {
             />
           </TouchableOpacity>
 
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flex: 1,
+              marginLeft: 12,
+            }}
+          >
             <MaterialCommunityIcons
               name="briefcase"
               size={28}
@@ -332,10 +379,8 @@ function JobFindingContent() {
               size={28}
               color={colors.white}
             />
-            
           </TouchableOpacity>
         </View>
-
       </View>
 
       <ScrollView
@@ -347,9 +392,6 @@ function JobFindingContent() {
 
         {/* Content Container with padding */}
         <View style={{ paddingHorizontal: 16 }}>
-          
-          
-
           {/* Featured Jobs Section */}
           <View style={{ marginBottom: 24 }}>
             <View
@@ -371,7 +413,9 @@ function JobFindingContent() {
               >
                 Công việc nổi bật
               </Text>
-              <TouchableOpacity onPress={() => router.push("/Candidate/JobSearchScreen")}>
+              <TouchableOpacity
+                onPress={() => router.push("/Candidate/JobSearchScreen")}
+              >
                 <Text
                   style={{
                     fontSize: 13,

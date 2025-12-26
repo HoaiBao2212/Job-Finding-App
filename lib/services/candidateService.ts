@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase } from "../supabase";
 
 export interface CandidateProfile {
   id?: number;
@@ -41,15 +41,15 @@ export const candidateService = {
   async getProfile(userId: string) {
     try {
       const { data, error } = await supabase
-        .from('candidate_profiles')
-        .select('*')
-        .eq('user_id', userId)
+        .from("candidate_profiles")
+        .select("*")
+        .eq("user_id", userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== "PGRST116") throw error;
       return data;
     } catch (error) {
-      console.error('Get candidate profile error:', error);
+      console.error("Get candidate profile error:", error);
       throw error;
     }
   },
@@ -58,14 +58,14 @@ export const candidateService = {
   async upsertProfile(profile: CandidateProfile) {
     try {
       const { data, error } = await supabase
-        .from('candidate_profiles')
-        .upsert([profile], { onConflict: 'user_id' })
+        .from("candidate_profiles")
+        .upsert([profile], { onConflict: "user_id" })
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Upsert candidate profile error:', error);
+      console.error("Upsert candidate profile error:", error);
       throw error;
     }
   },
@@ -74,15 +74,15 @@ export const candidateService = {
   async getExperiences(candidateId: number) {
     try {
       const { data, error } = await supabase
-        .from('candidate_experiences')
-        .select('*')
-        .eq('candidate_id', candidateId)
-        .order('start_date', { ascending: false });
+        .from("candidate_experiences")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .order("start_date", { ascending: false });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get experiences error:', error);
+      console.error("Get experiences error:", error);
       throw error;
     }
   },
@@ -91,14 +91,14 @@ export const candidateService = {
   async addExperience(experience: CandidateExperience) {
     try {
       const { data, error } = await supabase
-        .from('candidate_experiences')
+        .from("candidate_experiences")
         .insert([experience])
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Add experience error:', error);
+      console.error("Add experience error:", error);
       throw error;
     }
   },
@@ -107,15 +107,15 @@ export const candidateService = {
   async updateExperience(id: number, experience: Partial<CandidateExperience>) {
     try {
       const { data, error } = await supabase
-        .from('candidate_experiences')
+        .from("candidate_experiences")
         .update(experience)
-        .eq('id', id)
+        .eq("id", id)
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Update experience error:', error);
+      console.error("Update experience error:", error);
       throw error;
     }
   },
@@ -124,14 +124,14 @@ export const candidateService = {
   async deleteExperience(id: number) {
     try {
       const { error } = await supabase
-        .from('candidate_experiences')
+        .from("candidate_experiences")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('Delete experience error:', error);
+      console.error("Delete experience error:", error);
       throw error;
     }
   },
@@ -140,15 +140,15 @@ export const candidateService = {
   async getEducations(candidateId: number) {
     try {
       const { data, error } = await supabase
-        .from('candidate_educations')
-        .select('*')
-        .eq('candidate_id', candidateId)
-        .order('start_date', { ascending: false });
+        .from("candidate_educations")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .order("start_date", { ascending: false });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get educations error:', error);
+      console.error("Get educations error:", error);
       throw error;
     }
   },
@@ -157,14 +157,14 @@ export const candidateService = {
   async addEducation(education: CandidateEducation) {
     try {
       const { data, error } = await supabase
-        .from('candidate_educations')
+        .from("candidate_educations")
         .insert([education])
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Add education error:', error);
+      console.error("Add education error:", error);
       throw error;
     }
   },
@@ -173,15 +173,15 @@ export const candidateService = {
   async updateEducation(id: number, education: Partial<CandidateEducation>) {
     try {
       const { data, error } = await supabase
-        .from('candidate_educations')
+        .from("candidate_educations")
         .update(education)
-        .eq('id', id)
+        .eq("id", id)
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Update education error:', error);
+      console.error("Update education error:", error);
       throw error;
     }
   },
@@ -190,14 +190,14 @@ export const candidateService = {
   async deleteEducation(id: number) {
     try {
       const { error } = await supabase
-        .from('candidate_educations')
+        .from("candidate_educations")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('Delete education error:', error);
+      console.error("Delete education error:", error);
       throw error;
     }
   },
@@ -206,14 +206,14 @@ export const candidateService = {
   async getSkills(candidateId: number) {
     try {
       const { data, error } = await supabase
-        .from('candidate_skills')
-        .select('*, skills(*)')
-        .eq('candidate_id', candidateId);
+        .from("candidate_skills")
+        .select("*, skills(*)")
+        .eq("candidate_id", candidateId);
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get skills error:', error);
+      console.error("Get skills error:", error);
       throw error;
     }
   },
@@ -222,14 +222,14 @@ export const candidateService = {
   async addSkill(candidateId: number, skillId: number, level: number) {
     try {
       const { data, error } = await supabase
-        .from('candidate_skills')
+        .from("candidate_skills")
         .insert([{ candidate_id: candidateId, skill_id: skillId, level }])
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Add skill error:', error);
+      console.error("Add skill error:", error);
       throw error;
     }
   },
@@ -238,14 +238,14 @@ export const candidateService = {
   async deleteSkill(id: number) {
     try {
       const { error } = await supabase
-        .from('candidate_skills')
+        .from("candidate_skills")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('Delete skill error:', error);
+      console.error("Delete skill error:", error);
       throw error;
     }
   },
@@ -254,14 +254,14 @@ export const candidateService = {
   async saveJob(candidateId: number, jobId: number) {
     try {
       const { data, error } = await supabase
-        .from('saved_jobs')
+        .from("saved_jobs")
         .insert([{ candidate_id: candidateId, job_id: jobId }])
         .select();
 
       if (error) throw error;
       return data?.[0];
     } catch (error) {
-      console.error('Save job error:', error);
+      console.error("Save job error:", error);
       throw error;
     }
   },
@@ -270,15 +270,15 @@ export const candidateService = {
   async getSavedJobs(candidateId: number) {
     try {
       const { data, error } = await supabase
-        .from('saved_jobs')
-        .select('*, jobs(*)')
-        .eq('candidate_id', candidateId)
-        .order('created_at', { ascending: false });
+        .from("saved_jobs")
+        .select("*, jobs(*)")
+        .eq("candidate_id", candidateId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Get saved jobs error:', error);
+      console.error("Get saved jobs error:", error);
       throw error;
     }
   },
@@ -287,15 +287,32 @@ export const candidateService = {
   async unsaveJob(candidateId: number, jobId: number) {
     try {
       const { error } = await supabase
-        .from('saved_jobs')
+        .from("saved_jobs")
         .delete()
-        .eq('candidate_id', candidateId)
-        .eq('job_id', jobId);
+        .eq("candidate_id", candidateId)
+        .eq("job_id", jobId);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('Unsave job error:', error);
+      console.error("Unsave job error:", error);
+      throw error;
+    }
+  },
+
+  // Cập nhật avatar cho ứng viên
+  async updateCandidateAvatar(userId: string, avatarUrl: string) {
+    try {
+      const { data, error } = await supabase
+        .from("candidate_profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("user_id", userId)
+        .select();
+
+      if (error) throw error;
+      return data?.[0];
+    } catch (error) {
+      console.error("Update candidate avatar error:", error);
       throw error;
     }
   },

@@ -48,7 +48,6 @@ const MENU_ITEMS: MenuItem[] = [
     label: "Hồ sơ",
     route: "/Candidate/CandidateProfileScreen",
   },
-  { icon: "cog", label: "Tài khoản", route: "/Candidate/Account" },
 ];
 
 export default function SidebarLayout({ children }: SidebarLayoutProps) {
@@ -63,7 +62,9 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   React.useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const { data, error } = await supabase
             .from("profiles")

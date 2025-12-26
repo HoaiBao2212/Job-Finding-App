@@ -69,7 +69,6 @@ const MENU_ITEMS: MenuItem[] = [
     label: "Công ty",
     route: "/Employer/CompanyDetail",
   },
-  { icon: "account-circle", label: "Tài khoản", route: "/Employer/Account" },
 ];
 
 export default function EmployerSidebarLayout({

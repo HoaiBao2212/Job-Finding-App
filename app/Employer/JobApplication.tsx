@@ -15,7 +15,9 @@ import { authService } from "../../lib/services/authService";
 import { employerService } from "../../lib/services/employerService";
 import { jobService } from "../../lib/services/jobService";
 import AlertModal from "../Component/AlertModal";
-import EmployerSidebarLayout from "../Component/EmployerSidebarLayout";
+import EmployerSidebarLayout, {
+  useSidebar,
+} from "../Component/EmployerSidebarLayout";
 
 interface JobPosting {
   id: string;
@@ -43,7 +45,16 @@ interface JobPosting {
 }
 
 export default function JobApplicationScreen() {
+  return (
+    <EmployerSidebarLayout>
+      <JobApplicationContent />
+    </EmployerSidebarLayout>
+  );
+}
+
+function JobApplicationContent() {
   const router = useRouter();
+  const { toggleSidebar, isOpen } = useSidebar();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "closed" | "draft"
@@ -209,7 +220,27 @@ export default function JobApplicationScreen() {
       if (employer?.id) {
         setEmployerId(employer.id);
         const jobs = await jobService.getEmployerJobs(employer.id);
-        setJobPostings(jobs);
+
+        // Fetch application count for each job
+        const jobsWithApplicationCount = await Promise.all(
+          jobs.map(async (job) => {
+            try {
+              const applications = await jobService.getApplications(job.id);
+              return {
+                ...job,
+                applications: applications.length,
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching applications for job ${job.id}:`,
+                error
+              );
+              return job;
+            }
+          })
+        );
+
+        setJobPostings(jobsWithApplicationCount);
       } else {
         // Nếu người dùng chưa có employer, hiển thị alert
         showAlert(
@@ -333,10 +364,28 @@ export default function JobApplicationScreen() {
     </View>
   );
 
+  const getApplicationStatusColor = (status: string) => {
+    switch (status) {
+      case "applied":
+        return { bg: "#E7F5FF", text: colors.primary, label: "Mới ứng tuyển" };
+      case "reviewing":
+        return { bg: "#FFF7E6", text: "#FF7A45", label: "Đang xem xét" };
+      case "interview":
+        return { bg: "#F6FFED", text: "#52C41A", label: "Phỏng vấn" };
+      case "accepted":
+        return { bg: "#F6FFED", text: "#52C41A", label: "Chấp nhận" };
+      case "rejected":
+        return { bg: "#FFF1F0", text: "#FF7875", label: "Từ chối" };
+      default:
+        return { bg: "#F5F5F5", text: "#8C8C8C", label: "Khác" };
+    }
+  };
+
   const JobCard = ({ item }: { item: JobPosting }) => {
     const statusInfo = getStatusColor(item.is_active as any);
     return (
       <TouchableOpacity
+        onPress={() => router.push(`/Employer/CandidateApply?jobId=${item.id}`)}
         style={{
           backgroundColor: colors.white,
           borderRadius: 12,
@@ -351,12 +400,11 @@ export default function JobApplicationScreen() {
           elevation: 2,
         }}
       >
-        {/* Header */}
         <View
           style={{
             flexDirection: "row",
-            justifyContent: "space-between",
             alignItems: "flex-start",
+            justifyContent: "space-between",
             marginBottom: 12,
           }}
         >
@@ -366,25 +414,47 @@ export default function JobApplicationScreen() {
                 fontSize: 14,
                 fontWeight: "700",
                 color: colors.textDark,
+                marginBottom: 4,
               }}
             >
-              {item.title || "Không có tiêu đề"}
+              {item.title}
             </Text>
             <Text
               style={{
                 fontSize: 12,
                 color: colors.textGray,
-                marginTop: 4,
+                marginBottom: 6,
               }}
             >
               {item.companies?.name || item.company || "Công ty"} •{" "}
               {item.location || "Địa điểm"}
             </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={12}
+                color={colors.textGray}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.textGray,
+                }}
+              >
+                {item.applications || 0} ứng tuyển
+              </Text>
+            </View>
           </View>
           <View
             style={{
               backgroundColor: statusInfo.bg,
-              paddingHorizontal: 10,
+              paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 6,
             }}
@@ -392,7 +462,7 @@ export default function JobApplicationScreen() {
             <Text
               style={{
                 fontSize: 11,
-                fontWeight: "600",
+                fontWeight: "700",
                 color: statusInfo.text,
               }}
             >
@@ -400,496 +470,274 @@ export default function JobApplicationScreen() {
             </Text>
           </View>
         </View>
-
-        {/* Salary and Level */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: 12,
-            paddingBottom: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.borderLight,
-          }}
-        >
-          <View>
-            <Text style={{ fontSize: 11, color: colors.textGray }}>
-              Mức lương
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: colors.primary,
-                marginTop: 4,
-              }}
-            >
-              {item.salary || "Thỏa thuận"}
-            </Text>
-          </View>
-          <View>
-            <Text style={{ fontSize: 11, color: colors.textGray }}>Cấp độ</Text>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: colors.textDark,
-                marginTop: 4,
-              }}
-            >
-              {getLevelLabel(item.level || item.experience_level)}
-            </Text>
-          </View>
-          <View>
-            <Text style={{ fontSize: 11, color: colors.textGray }}>
-              Hạn chót
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: colors.textDark,
-                marginTop: 4,
-              }}
-            >
-              {item.deadline
-                ? new Date(item.deadline).toLocaleDateString("vi-VN")
-                : "N/A"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Stats Row */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-around",
-            marginBottom: 12,
-            paddingBottom: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.borderLight,
-          }}
-        >
-          <View style={{ alignItems: "center" }}>
-            <MaterialCommunityIcons
-              name="check-circle"
-              size={16}
-              color="#52C41A"
-            />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: colors.textDark,
-                marginTop: 4,
-              }}
-            >
-              {item.applications || 0}
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                color: colors.textGray,
-              }}
-            >
-              Ứng tuyển
-            </Text>
-          </View>
-          <View style={{ alignItems: "center" }}>
-            <MaterialCommunityIcons name="eye" size={16} color="#FF7A45" />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: colors.textDark,
-                marginTop: 4,
-              }}
-            >
-              {item.view_count || item.views || 0}
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                color: colors.textGray,
-              }}
-            >
-              Lượt xem
-            </Text>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 8,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.push(`/Employer/JobStats?jobId=${item.id}`)}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              borderRadius: 8,
-              backgroundColor: colors.primary,
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: colors.white,
-              }}
-            >
-              Xem chi tiết
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push(`/Employer/JobEditing?jobId=${item.id}`)}
-            style={{
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: colors.borderLight,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <MaterialCommunityIcons
-              name="pencil"
-              size={16}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleCloseJob(item.id)}
-            style={{
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: "#FF7875",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <MaterialCommunityIcons
-              name="close-circle"
-              size={16}
-              color="#FF7875"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleDeleteJob(item.id)}
-            style={{
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: colors.borderLight,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <MaterialCommunityIcons name="delete" size={16} color="#FF7875" />
-          </TouchableOpacity>
-        </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <EmployerSidebarLayout>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View
+          style={{
+            backgroundColor: colors.primary,
+            paddingHorizontal: 16,
+            paddingTop: 36,
+            paddingBottom: 24,
+          }}
+        >
           <View
             style={{
-              backgroundColor: colors.primary,
-              paddingHorizontal: 16,
-              paddingTop: 35,
-              paddingBottom: 20,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 0,
             }}
           >
             <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 0,
-              }}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
             >
-              <View
-                style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
-              >
-                <TouchableOpacity
-                  onPress={() => router.back()}
-                  style={{
-                    marginRight: 12,
-                    width: 50,
-                    height: 50,
-                    borderRadius: 12,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="chevron-left"
-                    size={28}
-                    color={colors.white}
-                  />
-                </TouchableOpacity>
-                <View>
-                  <Text
-                    style={{
-                      fontSize: 22,
-                      fontWeight: "800",
-                      color: colors.white,
-                    }}
-                  >
-                    Tin tuyển dụng
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.7)",
-                      fontWeight: "500",
-                      marginTop: 2,
-                    }}
-                  >
-                    Quản lý các tin đăng của bạn
-                  </Text>
-                </View>
-              </View>
               <TouchableOpacity
-                onPress={handlePostJob}
+                onPress={toggleSidebar}
                 style={{
-                  width: 50,
-                  height: 50,
+                  width: 44,
+                  height: 44,
                   borderRadius: 12,
+                  backgroundColor: "rgba(255,255,255,0.12)",
                   justifyContent: "center",
                   alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.2)",
+                  marginRight: 16,
                 }}
               >
                 <MaterialCommunityIcons
-                  name="plus"
-                  size={24}
+                  name={isOpen ? "close" : "menu"}
+                  size={22}
                   color={colors.white}
                 />
               </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Statistics */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              marginTop: 0,
-              marginBottom: 0,
-            }}
-          ></View>
-
-          {/* Search and Filters */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              marginTop: 12,
-              marginBottom: 20,
-            }}
-          >
-            {/* Search */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: colors.white,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: colors.borderLight,
-                paddingHorizontal: 12,
-                marginBottom: 12,
-                height: 44,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="magnify"
-                size={20}
-                color={colors.textGray}
-                style={{ marginRight: 8 }}
-              />
-              <TextInput
-                placeholder="Tìm tin tuyển dụng..."
-                placeholderTextColor={colors.textGray}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  color: colors.textDark,
-                }}
-              />
-            </View>
-
-            {/* Filter Tabs */}
-            <View
-              style={{
-                flexDirection: "row",
-                marginBottom: 12,
-              }}
-            >
-              {(["all", "active", "closed", "draft"] as const).map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  onPress={() => setFilterStatus(status)}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    backgroundColor:
-                      filterStatus === status ? colors.primary : colors.white,
-                    borderWidth: 1,
-                    borderColor:
-                      filterStatus === status
-                        ? colors.primary
-                        : colors.borderLight,
-                    marginRight: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color:
-                        filterStatus === status
-                          ? colors.white
-                          : colors.textDark,
-                    }}
-                  >
-                    {status === "all"
-                      ? "Tất cả"
-                      : status === "active"
-                      ? "Đang tuyển"
-                      : status === "closed"
-                      ? "Đã đóng"
-                      : "Nháp"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Sort */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ fontSize: 12, color: colors.textGray }}>
-                Sắp xếp:
-              </Text>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {(["newest", "popular", "applications"] as const).map(
-                  (sort) => (
-                    <TouchableOpacity
-                      key={sort}
-                      onPress={() => setSortBy(sort)}
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 6,
-                        backgroundColor:
-                          sortBy === sort ? colors.primary : colors.white,
-                        borderWidth: 1,
-                        borderColor:
-                          sortBy === sort ? colors.primary : colors.borderLight,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "600",
-                          color:
-                            sortBy === sort ? colors.white : colors.textDark,
-                        }}
-                      >
-                        {sort === "newest"
-                          ? "Mới"
-                          : sort === "popular"
-                          ? "Phổ biến"
-                          : "Ứng tuyển"}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* Job List */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              paddingBottom: 20,
-            }}
-          >
-            {filteredJobs.length > 0 ? (
-              <>
+              <View>
                 <Text
                   style={{
-                    fontSize: 13,
-                    color: colors.textGray,
-                    marginBottom: 12,
+                    fontSize: 26,
+                    fontWeight: "800",
+                    color: colors.white,
+                    marginBottom: 4,
                   }}
                 >
-                  Tìm thấy {filteredJobs.length} tin tuyển dụng
-                </Text>
-                {filteredJobs.map((job) => (
-                  <JobCard key={job.id} item={job} />
-                ))}
-              </>
-            ) : (
-              <View
-                style={{
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingVertical: 40,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="briefcase-search"
-                  size={48}
-                  color={colors.textGray}
-                  style={{ marginBottom: 12 }}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: colors.textDark,
-                  }}
-                >
-                  Không tìm thấy tin tuyển dụng
+                  Tin tuyển dụng
                 </Text>
                 <Text
                   style={{
                     fontSize: 12,
-                    color: colors.textGray,
-                    marginTop: 8,
-                    textAlign: "center",
+                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: "500",
                   }}
                 >
-                  Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
+                  Quản lý các tin đăng của bạn
                 </Text>
               </View>
-            )}
+            </View>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+
+          {/* Add Button */}
+          <View
+            style={{
+              marginTop: 20,
+            }}
+          >
+            <TouchableOpacity
+              onPress={handlePostJob}
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: "#000",
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 3,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="plus"
+                size={20}
+                color={colors.primary}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 14,
+                  fontWeight: "600",
+                }}
+              >
+                Đăng tin tuyển dụng
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Statistics */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            marginTop: 0,
+            marginBottom: 0,
+          }}
+        ></View>
+
+        {/* Search and Filters */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            marginTop: 12,
+            marginBottom: 20,
+          }}
+        >
+          {/* Search */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.white,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.borderLight,
+              paddingHorizontal: 12,
+              marginBottom: 12,
+              height: 44,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="magnify"
+              size={20}
+              color={colors.textGray}
+              style={{ marginRight: 8 }}
+            />
+            <TextInput
+              placeholder="Tìm tin tuyển dụng..."
+              placeholderTextColor={colors.textGray}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={{
+                flex: 1,
+                fontSize: 14,
+                color: colors.textDark,
+              }}
+            />
+          </View>
+
+          {/* Sort */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: colors.textGray }}>
+              Sắp xếp:
+            </Text>
+            {(["newest", "popular", "applications"] as const).map((sort) => (
+              <TouchableOpacity
+                key={sort}
+                onPress={() => setSortBy(sort)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  backgroundColor:
+                    sortBy === sort ? colors.primary : colors.white,
+                  borderWidth: 1,
+                  borderColor:
+                    sortBy === sort ? colors.primary : colors.borderLight,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: sortBy === sort ? colors.white : colors.textDark,
+                  }}
+                >
+                  {sort === "newest"
+                    ? "Mới"
+                    : sort === "popular"
+                    ? "Phổ biến"
+                    : "Ứng tuyển"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Job List */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingBottom: 20,
+          }}
+        >
+          {filteredJobs.length > 0 ? (
+            <>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textGray,
+                  marginBottom: 12,
+                }}
+              >
+                Tìm thấy {filteredJobs.length} tin tuyển dụng
+              </Text>
+              {filteredJobs.map((job) => (
+                <JobCard key={job.id} item={job} />
+              ))}
+            </>
+          ) : (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 40,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="briefcase-search"
+                size={48}
+                color={colors.textGray}
+                style={{ marginBottom: 12 }}
+              />
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: colors.textDark,
+                }}
+              >
+                Không tìm thấy tin tuyển dụng
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.textGray,
+                  marginTop: 8,
+                  textAlign: "center",
+                }}
+              >
+                Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
       <AlertModal
         visible={alertVisible}
@@ -898,6 +746,6 @@ export default function JobApplicationScreen() {
         buttons={alertButtons}
         onDismiss={() => setAlertVisible(false)}
       />
-    </EmployerSidebarLayout>
+    </SafeAreaView>
   );
 }
