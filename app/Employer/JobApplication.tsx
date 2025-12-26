@@ -526,7 +526,7 @@ export default function JobApplicationScreen() {
           }}
         >
           <TouchableOpacity
-            onPress={() => router.push(`/Employer/JobDetail?jobId=${item.id}`)}
+            onPress={() => router.push(`/Employer/JobStats?jobId=${item.id}`)}
             style={{
               flex: 1,
               paddingVertical: 10,
