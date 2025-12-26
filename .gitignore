@@ -44,3 +44,5 @@ app-example
 
 # environment files
 .env
+#sql
+sql.md

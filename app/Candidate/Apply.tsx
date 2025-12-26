@@ -1,7 +1,10 @@
+import { authService } from "@/lib/services/authService";
+import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as React from "react";
 import {
+  ActivityIndicator,
   FlatList,
   ScrollView,
   StatusBar,
@@ -11,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../../constants/theme";
-import SidebarLayout from "../Component/SidebarLayout";
+import SidebarLayout, { useSidebar } from "../Component/SidebarLayout";
 
 interface Application {
   id: string;
@@ -21,70 +24,159 @@ interface Application {
   salary: string;
   location: string;
   appliedDate: string;
-  status: "pending" | "reviewed" | "accepted" | "rejected";
+  status: "pending" | "interview" | "rejected";
   statusVn: string;
   coverLetter?: string;
 }
 
-const APPLICATIONS: Application[] = [
-  {
-    id: "1",
-    jobId: "1",
-    jobTitle: "Senior React Native Developer",
-    company: "Tech Company A",
-    salary: "20 - 30 triệu",
-    location: "TP. Hồ Chí Minh",
-    appliedDate: "5 ngày trước",
-    status: "reviewed",
-    statusVn: "Đã xem",
-  },
-  {
-    id: "2",
-    jobId: "2",
-    jobTitle: "Full Stack Developer",
-    company: "Startup XYZ",
-    salary: "15 - 25 triệu",
-    location: "Hà Nội",
-    appliedDate: "3 ngày trước",
-    status: "pending",
-    statusVn: "Đang chờ",
-  },
-  {
-    id: "3",
-    jobId: "3",
-    jobTitle: "Mobile App Developer",
-    company: "Tech Company B",
-    salary: "18 - 28 triệu",
-    location: "Đà Nẵng",
-    appliedDate: "1 ngày trước",
-    status: "accepted",
-    statusVn: "Chấp nhận",
-  },
-  {
-    id: "4",
-    jobId: "1",
-    jobTitle: "UI/UX Designer",
-    company: "Design Studio",
-    salary: "12 - 18 triệu",
-    location: "TP. Hồ Chí Minh",
-    appliedDate: "7 ngày trước",
-    status: "rejected",
-    statusVn: "Từ chối",
-  },
-];
-
 export default function ApplyScreen() {
+  return (
+    <SidebarLayout>
+      <ApplyContent />
+    </SidebarLayout>
+  );
+}
+
+function ApplyContent() {
+  const { toggleSidebar } = useSidebar();
   const router = useRouter();
   const [filterStatus, setFilterStatus] = React.useState<string | null>(null);
+  const [applications, setApplications] = React.useState<Application[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [fullName, setFullName] = React.useState("Người dùng");
+
+  React.useEffect(() => {
+    loadApplications();
+  }, []);
+
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Fetch user full name from profiles
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData) {
+        setFullName(profileData.full_name || "Người dùng");
+      }
+
+      // Step 1: Get candidate_id from candidate_profiles table
+      const { data: candidateData, error: candidateError } = await supabase
+        .from("candidate_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!candidateData) {
+        console.error("No candidate profile found", candidateError);
+        setApplications([]);
+        setLoading(false);
+        return;
+      }
+
+      const candidateId = candidateData.id;
+
+      // Step 2: Get job_applications for this candidate
+      const { data: jobAppsData, error: jobAppsError } = await supabase
+        .from("job_applications")
+        .select("id, job_id, status, applied_at")
+        .eq("candidate_id", candidateId)
+        .order("applied_at", { ascending: false });
+
+      if (!jobAppsData || jobAppsData.length === 0) {
+        setApplications([]);
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: Get job details for all jobs applied to
+      const jobIds = jobAppsData.map((app) => app.job_id);
+      const { data: jobsData } = await supabase
+        .from("jobs")
+        .select(
+          `id, title, location, salary_min, salary_max, salary_currency, created_at,
+           companies(name, logo_url)`
+        )
+        .in("id", jobIds);
+
+      // Step 4: Combine data
+      const applicationsWithDetails: Application[] = jobAppsData.map(
+        (jobApp) => {
+          const job = jobsData?.find((j) => j.id === jobApp.job_id);
+          const company = (job as any)?.companies;
+
+          const salaryRange =
+            job?.salary_min && job?.salary_max
+              ? `${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()} ${job.salary_currency || "VND"}`
+              : "Thương lượng";
+
+          const appliedDate = getTimeAgo(jobApp.applied_at);
+
+          const statusMap: {
+            [key: string]: { status: Application["status"]; statusVn: string };
+          } = {
+            pending: { status: "pending", statusVn: "Đang chờ" },
+            interview: { status: "interview", statusVn: "Phỏng vấn" },
+            rejected: { status: "rejected", statusVn: "Từ chối" },
+          };
+
+          const statusInfo = statusMap[jobApp.status] || {
+            status: "pending",
+            statusVn: "Đang chờ",
+          };
+
+          return {
+            id: jobApp.id,
+            jobId: job?.id.toString() || "",
+            jobTitle: job?.title || "Job",
+            company: company?.name || "Unknown Company",
+            salary: salaryRange,
+            location: job?.location || "Unknown Location",
+            appliedDate,
+            status: statusInfo.status,
+            statusVn: statusInfo.statusVn,
+          };
+        }
+      );
+
+      setApplications(applicationsWithDetails);
+    } catch (error) {
+      console.error("Error loading applications:", error);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const secondsDiff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (secondsDiff < 60) return "Vừa xong";
+    if (secondsDiff < 3600) return `${Math.floor(secondsDiff / 60)} phút trước`;
+    if (secondsDiff < 86400) return `${Math.floor(secondsDiff / 3600)} giờ trước`;
+    if (secondsDiff < 604800)
+      return `${Math.floor(secondsDiff / 86400)} ngày trước`;
+    return `${Math.floor(secondsDiff / 604800)} tuần trước`;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
         return "#FFA500";
-      case "reviewed":
-        return "#4169E1";
-      case "accepted":
-        return "#00B050";
+      case "interview":
+        return "#2196F3";
       case "rejected":
         return "#E63946";
       default:
@@ -96,10 +188,8 @@ export default function ApplyScreen() {
     switch (status) {
       case "pending":
         return "clock-outline";
-      case "reviewed":
-        return "eye";
-      case "accepted":
-        return "check-circle";
+      case "interview":
+        return "video";
       case "rejected":
         return "close-circle";
       default:
@@ -108,8 +198,8 @@ export default function ApplyScreen() {
   };
 
   const filteredApplications = filterStatus
-    ? APPLICATIONS.filter((app) => app.status === filterStatus)
-    : APPLICATIONS;
+    ? applications.filter((app) => app.status === filterStatus)
+    : applications;
 
   const ApplicationCard = ({ item }: { item: Application }) => (
     <TouchableOpacity
@@ -235,109 +325,181 @@ export default function ApplyScreen() {
   );
 
   return (
-    <SidebarLayout>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1, paddingHorizontal: 16, paddingTop: 60 }}
+      {loading ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: colors.bgNeutral,
+          }}
         >
-          {/* Header */}
-          <View style={{ marginBottom: 24 }}>
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "700",
-                color: colors.textDark,
-                marginBottom: 8,
-              }}
-            >
-              Đơn ứng tuyển 📝
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.textGray }}>
-              Quản lý các đơn ứng tuyển của bạn
-            </Text>
-          </View>
-
-          {/* Stats */}
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <>
+          {/* Modern Header Bar */}
           <View
             style={{
-              backgroundColor: colors.primarySoftBg,
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 24,
-              flexDirection: "row",
-              justifyContent: "space-around",
+              backgroundColor: colors.primary,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              gap: 12,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 3,
+              elevation: 4,
             }}
           >
-            <View style={{ alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="file-check"
-                size={24}
-                color={colors.primary}
-              />
-              <Text
-                style={{ fontSize: 12, color: colors.textGray, marginTop: 8 }}
-              >
-                Tổng số
-              </Text>
-              <Text
+            {/* Header Top - Logo and Sidebar Toggle */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              {/* Sidebar Toggle Button - Left Side */}
+              <TouchableOpacity
+                onPress={toggleSidebar}
                 style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginTop: 4,
+                  width: 50,
+                  height: 50,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderRadius: 8,
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
                 }}
               >
-                {APPLICATIONS.length}
-              </Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="check-circle"
-                size={24}
-                color="#00B050"
-              />
-              <Text
-                style={{ fontSize: 12, color: colors.textGray, marginTop: 8 }}
-              >
-                Chấp nhận
-              </Text>
-              <Text
+                <MaterialCommunityIcons
+                  name="menu"
+                  size={28}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
+                <MaterialCommunityIcons
+                  name="file-check"
+                  size={28}
+                  color={colors.white}
+                  style={{ marginRight: 12 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.white,
+                  }}
+                >
+                  Đơn Ứng Tuyển
+                </Text>
+              </View>
+
+              {/* Notification Button - Right Side */}
+              <TouchableOpacity
                 style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginTop: 4,
+                  width: 50,
+                  height: 50,
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
               >
-                {APPLICATIONS.filter((a) => a.status === "accepted").length}
-              </Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={24}
-                color="#FFA500"
-              />
-              <Text
-                style={{ fontSize: 12, color: colors.textGray, marginTop: 8 }}
-              >
-                Chờ xử lý
-              </Text>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.textDark,
-                  marginTop: 4,
-                }}
-              >
-                {APPLICATIONS.filter((a) => a.status === "pending").length}
-              </Text>
+                <MaterialCommunityIcons
+                  name="bell"
+                  size={28}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
             </View>
           </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
+          >
+            {/* Stats */}
+            <View
+              style={{
+                backgroundColor: colors.primarySoftBg,
+                borderRadius: 12,
+                padding: 16,
+                marginBottom: 24,
+                flexDirection: "row",
+                justifyContent: "space-around",
+              }}
+            >
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="file-check"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text
+                  style={{ fontSize: 12, color: colors.textGray, marginTop: 8 }}
+                >
+                  Tổng số
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 4,
+                  }}
+                >
+                  {applications.length}
+                </Text>
+              </View>
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="video"
+                  size={24}
+                  color="#2196F3"
+                />
+                <Text
+                  style={{ fontSize: 12, color: colors.textGray, marginTop: 8 }}
+                >
+                  Phỏng vấn
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 4,
+                  }}
+                >
+                  {applications.filter((a) => a.status === "interview").length}
+                </Text>
+              </View>
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={24}
+                  color="#E63946"
+                />
+                <Text
+                  style={{ fontSize: 12, color: colors.textGray, marginTop: 8 }}
+                >
+                  Từ chối
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.textDark,
+                    marginTop: 4,
+                  }}
+                >
+                  {applications.filter((a) => a.status === "rejected").length}
+                </Text>
+              </View>
+            </View>
 
           {/* Filter Buttons */}
           <ScrollView
@@ -370,8 +532,7 @@ export default function ApplyScreen() {
 
             {[
               { status: "pending", label: "Chờ xử lý", icon: "clock-outline" },
-              { status: "reviewed", label: "Đã xem", icon: "eye" },
-              { status: "accepted", label: "Chấp nhận", icon: "check-circle" },
+              { status: "interview", label: "Phỏng vấn", icon: "video" },
               { status: "rejected", label: "Từ chối", icon: "close-circle" },
             ].map((filter) => (
               <TouchableOpacity
@@ -467,9 +628,10 @@ export default function ApplyScreen() {
             </View>
           )}
 
-          <View style={{ height: 32 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </SidebarLayout>
+            <View style={{ height: 32 }} />
+          </ScrollView>
+        </>
+      )}
+    </SafeAreaView>
   );
 }

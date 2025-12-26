@@ -496,7 +496,8 @@ export default function CompaniesScreen() {
           type="file"
           accept="image/*"
           onChange={handleUploadLogoWeb}
-          style={{ display: "none" }}
+          style={styles.hiddenFileInput}
+          title="Upload company logo"
         />
       )}
       <ScrollView
@@ -545,6 +546,13 @@ export default function CompaniesScreen() {
             )}
           </View>
           <View style={{ marginBottom: 12, gap: 10 }}>
+            <TextInput
+              style={styles.input}
+              placeholder="URL ảnh logo (không bắt buộc)"
+              placeholderTextColor={colors.textGray}
+              value={logoUrl}
+              onChangeText={setLogoUrl}
+            />
             <TouchableOpacity
               style={{
                 backgroundColor: colors.primary,
@@ -559,10 +567,7 @@ export default function CompaniesScreen() {
               disabled={uploading}
             >
               {uploading ? (
-                <ActivityIndicator
-                  color={colors.white}
-                  style={{ marginRight: 8 }}
-                />
+                <ActivityIndicator color={colors.white} style={{ marginRight: 8 }} />
               ) : (
                 <MaterialCommunityIcons
                   name="cloud-upload"
@@ -867,5 +872,8 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     color: colors.white,
     fontFamily: Fonts.sans,
+  },
+  hiddenFileInput: {
+    display: "none" as const,
   },
 });

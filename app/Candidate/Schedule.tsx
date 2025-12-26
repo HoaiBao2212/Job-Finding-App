@@ -1,6 +1,10 @@
+import { authService } from "@/lib/services/authService";
+import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import * as React from "react";
 import {
+  ActivityIndicator,
   FlatList,
   ScrollView,
   StatusBar,
@@ -10,83 +14,216 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../../constants/theme";
-import SidebarLayout from "../Component/SidebarLayout";
+import SidebarLayout, { useSidebar } from "../Component/SidebarLayout";
 
 interface InterviewSchedule {
   id: string;
   jobTitle: string;
   company: string;
-  interviewDate: string;
-  interviewTime: string;
+  jobId: string;
+  companyId: string;
+  startTime: string;
+  endTime: string;
   interviewType: "online" | "offline";
-  location?: string;
-  interviewerName: string;
-  interviewerTitle: string;
+  location?: string | null;
+  meetingLink?: string | null;
+  timezone: string;
   status: "scheduled" | "completed" | "cancelled";
   statusVn: string;
-  notes?: string;
+  notes?: string | null;
+  appliedDate: string;
+  employerEmail?: string | null;
+  employerPhone?: string | null;
 }
 
-const INTERVIEW_SCHEDULES: InterviewSchedule[] = [
-  {
-    id: "1",
-    jobTitle: "Senior React Native Developer",
-    company: "Tech Company A",
-    interviewDate: "20/11/2025",
-    interviewTime: "10:00 - 11:00",
-    interviewType: "online",
-    location: "Google Meet",
-    interviewerName: "Nguyễn Thị B",
-    interviewerTitle: "HR Manager",
-    status: "scheduled",
-    statusVn: "Sắp diễn ra",
-    notes: "Chuẩn bị CV và portfolio",
-  },
-  {
-    id: "2",
-    jobTitle: "Full Stack Developer",
-    company: "Startup XYZ",
-    interviewDate: "22/11/2025",
-    interviewTime: "14:00 - 15:30",
-    interviewType: "offline",
-    location: "Tầng 5, Tòa nhà ABC, Quận 1, TP.HCM",
-    interviewerName: "Trần Văn C",
-    interviewerTitle: "Tech Lead",
-    status: "scheduled",
-    statusVn: "Sắp diễn ra",
-    notes: "Mang theo bằng cấp và chứng chỉ",
-  },
-  {
-    id: "3",
-    jobTitle: "Mobile App Developer",
-    company: "Tech Company B",
-    interviewDate: "18/11/2025",
-    interviewTime: "09:00 - 10:00",
-    interviewType: "online",
-    location: "Zoom",
-    interviewerName: "Lê Thị D",
-    interviewerTitle: "Hiring Manager",
-    status: "completed",
-    statusVn: "Hoàn thành",
-  },
-  {
-    id: "4",
-    jobTitle: "UI/UX Designer",
-    company: "Design Studio",
-    interviewDate: "15/11/2025",
-    interviewTime: "16:00 - 16:45",
-    interviewType: "offline",
-    location: "Tầng 3, Văn phòng Design Studio",
-    interviewerName: "Phạm Văn E",
-    interviewerTitle: "Design Director",
-    status: "cancelled",
-    statusVn: "Đã hủy",
-    notes: "Nhân viên bênh dự định reschedule",
-  },
-];
-
 export default function ScheduleScreen() {
+  return (
+    <SidebarLayout>
+      <ScheduleContent />
+    </SidebarLayout>
+  );
+}
+
+function ScheduleContent() {
+  const { toggleSidebar } = useSidebar();
+  const router = useRouter();
   const [filterStatus, setFilterStatus] = React.useState<string | null>(null);
+  const [schedules, setSchedules] = React.useState<InterviewSchedule[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    loadSchedules();
+  }, []);
+
+  const loadSchedules = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
+
+      if (!user) {
+        router.push("/(auth)/login");
+        return;
+      }
+
+      // Step 1: Get candidate_id from candidate_profiles table
+      const { data: candidateData, error: candidateError } = await supabase
+        .from("candidate_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!candidateData) {
+        console.error("No candidate profile found", candidateError);
+        setSchedules([]);
+        setLoading(false);
+        return;
+      }
+
+      const candidateId = candidateData.id;
+
+      // Step 2: Get job_applications with interview_id for this candidate
+      const { data: jobAppsData, error: jobAppsError } = await supabase
+        .from("job_applications")
+        .select("id, job_id, interview_id, applied_at, status")
+        .eq("candidate_id", candidateId)
+        .not("interview_id", "is", null)
+        .order("applied_at", { ascending: false });
+
+      if (!jobAppsData || jobAppsData.length === 0) {
+        setSchedules([]);
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: Get interview details for all non-null interview_ids
+      const interviewIds = jobAppsData
+        .map((app) => app.interview_id)
+        .filter((id): id is number => id !== null);
+
+      const { data: interviewsData } = await supabase
+        .from("interviews")
+        .select(
+          "id, job_id, company_id, start_time, end_time, timezone, type, meeting_link, location, note, status"
+        )
+        .in("id", interviewIds);
+
+      // Step 4: Get job details for all jobs applied to with interviews
+      const jobIds = jobAppsData.map((app) => app.job_id);
+      const { data: jobsData } = await supabase
+        .from("jobs")
+        .select(
+          `id, title, location, created_by_employer_id,
+           companies(id, name, logo_url)`
+        )
+        .in("id", jobIds);
+
+      // Step 5: Get employer contact info
+      const employerIds = (jobsData || [])
+        .map((job: any) => job.created_by_employer_id)
+        .filter((id): id is number => id !== null && id !== undefined);
+
+      const { data: employersData } = await supabase
+        .from("employers")
+        .select(
+          `id, user_id,
+           profiles(email, phone)`
+        )
+        .in("id", employerIds);
+
+      // Step 6: Combine data
+      const schedulesWithDetails: InterviewSchedule[] = jobAppsData
+        .filter((jobApp) => {
+          const interview = interviewsData?.find(
+            (i) => i.id === jobApp.interview_id
+          );
+          const job = jobsData?.find((j) => j.id === jobApp.job_id);
+          const company = (job as any)?.companies;
+          return interview && job && company;
+        })
+        .map((jobApp) => {
+          const interview = interviewsData?.find(
+            (i) => i.id === jobApp.interview_id
+          )!;
+          const job = jobsData?.find((j) => j.id === jobApp.job_id)!;
+          const company = (job as any)?.companies;
+
+          // Parse start_time and end_time
+          const startDate = new Date(interview.start_time);
+          const endDate = interview.end_time
+            ? new Date(interview.end_time)
+            : null;
+
+          
+          startDate.setHours(startDate.getHours() - 7);
+          if (endDate) {
+            endDate.setHours(endDate.getHours() - 7);
+          }
+
+          // Format dates and times
+          const dateStr = `${startDate.getDate()}/${
+            startDate.getMonth() + 1
+          }/${startDate.getFullYear()}`;
+          const timeStr = `${startDate.getHours().toString().padStart(2, "0")}:${startDate
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}${
+            endDate
+              ? ` - ${endDate.getHours().toString().padStart(2, "0")}:${endDate
+                  .getMinutes()
+                  .toString()
+                  .padStart(2, "0")}`
+              : ""
+          }`;
+
+          const appliedDate = `${new Date(jobApp.applied_at).getDate()}/${
+            new Date(jobApp.applied_at).getMonth() + 1
+          }/${new Date(jobApp.applied_at).getFullYear()}`;
+
+          // Determine status
+          let status: "scheduled" | "completed" | "cancelled" = "scheduled";
+          if (interview.status === "done") status = "completed";
+          if (interview.status === "canceled") status = "cancelled";
+
+          // Get employer contact info
+          const employer = employersData?.find(
+            (e: any) => e.id === (job as any).created_by_employer_id
+          );
+          const employerProfile = (employer as any)?.profiles;
+
+          return {
+            id: interview.id.toString(),
+            jobTitle: job.title,
+            company: company.name,
+            jobId: job.id.toString(),
+            companyId: company.id.toString(),
+            startTime: startDate.toISOString(),
+            endTime: endDate?.toISOString() || "",
+            interviewType: interview.type === "online" ? "online" : "offline",
+            location: interview.location,
+            meetingLink: interview.meeting_link,
+            timezone: interview.timezone,
+            status,
+            statusVn:
+              status === "scheduled"
+                ? "Sắp diễn ra"
+                : status === "completed"
+                  ? "Hoàn thành"
+                  : "Đã hủy",
+            notes: interview.note,
+            appliedDate,
+            employerEmail: employerProfile?.email,
+            employerPhone: employerProfile?.phone,
+          } as InterviewSchedule;
+        });
+
+      setSchedules(schedulesWithDetails);
+    } catch (error) {
+      console.error("Error loading schedules:", error);
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -114,21 +251,37 @@ export default function ScheduleScreen() {
     }
   };
 
-  const getDaysUntilInterview = (dateStr: string) => {
+  const getDaysUntilInterview = (isoDateStr: string) => {
     const today = new Date();
-    const [day, month, year] = dateStr.split("/").map(Number);
-    const interviewDate = new Date(year, month - 1, day);
+    const interviewDate = new Date(isoDateStr);
     const diffTime = interviewDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
 
   const filteredSchedules = filterStatus
-    ? INTERVIEW_SCHEDULES.filter((s) => s.status === filterStatus)
-    : INTERVIEW_SCHEDULES;
+    ? schedules.filter((s) => s.status === filterStatus)
+    : schedules;
 
   const ScheduleCard = ({ item }: { item: InterviewSchedule }) => {
-    const daysLeft = getDaysUntilInterview(item.interviewDate);
+    const daysLeft = getDaysUntilInterview(item.startTime);
+    const startDate = new Date(item.startTime);
+    const endDate = item.endTime ? new Date(item.endTime) : null;
+    
+    const dateStr = `${startDate.getDate()}/${
+      startDate.getMonth() + 1
+    }/${startDate.getFullYear()}`;
+    const timeStr = `${startDate.getHours().toString().padStart(2, "0")}:${startDate
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}${
+      endDate
+        ? ` - ${endDate.getHours().toString().padStart(2, "0")}:${endDate
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}`
+        : ""
+    }`;
 
     return (
       <View
@@ -176,6 +329,58 @@ export default function ScheduleScreen() {
             >
               {item.company}
             </Text>
+            {/* Employer Contact Info - Below Company */}
+            {(item.employerEmail || item.employerPhone) && (
+              <View style={{ marginTop: 8 }}>
+                {item.employerEmail && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="email"
+                      size={12}
+                      color={colors.primary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: colors.textGray,
+                      }}
+                    >
+                      {item.employerEmail}
+                    </Text>
+                  </View>
+                )}
+                {item.employerPhone && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="phone"
+                      size={12}
+                      color={colors.primary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: colors.textGray,
+                      }}
+                    >
+                      {item.employerPhone}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
           <View
             style={{
@@ -235,7 +440,7 @@ export default function ScheduleScreen() {
                 marginRight: 16,
               }}
             >
-              {item.interviewDate}
+              {dateStr}
             </Text>
             <MaterialCommunityIcons
               name="clock-outline"
@@ -250,7 +455,7 @@ export default function ScheduleScreen() {
                 color: colors.textDark,
               }}
             >
-              {item.interviewTime}
+              {timeStr}
             </Text>
           </View>
 
@@ -268,7 +473,9 @@ export default function ScheduleScreen() {
                 flex: 1,
               }}
             >
-              {item.location || item.interviewType}
+              {item.interviewType === "online"
+                ? item.meetingLink || "Online"
+                : item.location || "Offline"}
             </Text>
           </View>
 
@@ -294,54 +501,33 @@ export default function ScheduleScreen() {
           )}
         </View>
 
-        {/* Interviewer Info */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingBottom: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.borderLight,
-          }}
-        >
+        {/* Timezone Info */}
+        {item.timezone && (
           <View
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: colors.primarySoftBg,
-              justifyContent: "center",
+              flexDirection: "row",
               alignItems: "center",
-              marginRight: 12,
+              paddingBottom: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.borderLight,
             }}
           >
             <MaterialCommunityIcons
-              name="account-circle"
-              size={24}
+              name="earth"
+              size={16}
               color={colors.primary}
+              style={{ marginRight: 8 }}
             />
-          </View>
-          <View style={{ flex: 1 }}>
             <Text
               style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: colors.textDark,
-              }}
-            >
-              {item.interviewerName}
-            </Text>
-            <Text
-              style={{
-                fontSize: 11,
+                fontSize: 12,
                 color: colors.textGray,
-                marginTop: 2,
               }}
             >
-              {item.interviewerTitle}
+              {item.timezone}
             </Text>
           </View>
-        </View>
+        )}
 
         {/* Notes */}
         {item.notes && (
@@ -367,94 +553,108 @@ export default function ScheduleScreen() {
             </Text>
           </View>
         )}
-
-        {/* Action Buttons */}
-        {item.status === "scheduled" && (
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 8,
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: colors.borderLight,
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 6,
-                borderWidth: 1,
-                borderColor: colors.primary,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: colors.primary,
-                }}
-              >
-                Reschedule
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                paddingVertical: 8,
-                borderRadius: 6,
-                backgroundColor: colors.primary,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: colors.white,
-                }}
-              >
-                Xác nhận
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     );
   };
 
   return (
-    <SidebarLayout>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.bgNeutral} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgNeutral }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1, paddingHorizontal: 16, paddingTop: 60 }}
+      {loading ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: colors.bgNeutral,
+          }}
         >
-          {/* Header */}
-          <View style={{ marginBottom: 24 }}>
-            <Text
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <>
+          {/* Modern Header Bar */}
+          <View
+            style={{
+              backgroundColor: colors.primary,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              gap: 12,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 3,
+              elevation: 4,
+            }}
+          >
+            {/* Header Top - Logo and Sidebar Toggle */}
+            <View
               style={{
-                fontSize: 28,
-                fontWeight: "700",
-                color: colors.textDark,
-                marginBottom: 8,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              Lịch phỏng vấn 📅
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: colors.textGray,
-              }}
-            >
-              Quản lý các cuộc phỏng vấn của bạn
-            </Text>
+              {/* Sidebar Toggle Button - Left Side */}
+              <TouchableOpacity
+                onPress={toggleSidebar}
+                style={{
+                  width: 50,
+                  height: 50,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderRadius: 8,
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="menu"
+                  size={28}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginLeft: 12 }}>
+                <MaterialCommunityIcons
+                  name="calendar-check"
+                  size={28}
+                  color={colors.white}
+                  style={{ marginRight: 12 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: colors.white,
+                  }}
+                >
+                  Lịch Phỏng Vấn
+                </Text>
+              </View>
+
+              {/* Notification Button - Right Side */}
+              <TouchableOpacity
+                style={{
+                  width: 50,
+                  height: 50,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="bell"
+                  size={28}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
+          >
 
           {/* Stats */}
           <View
@@ -490,7 +690,7 @@ export default function ScheduleScreen() {
                   marginTop: 4,
                 }}
               >
-                {INTERVIEW_SCHEDULES.length}
+                {schedules.length}
               </Text>
             </View>
             <View style={{ alignItems: "center" }}>
@@ -516,10 +716,7 @@ export default function ScheduleScreen() {
                   marginTop: 4,
                 }}
               >
-                {
-                  INTERVIEW_SCHEDULES.filter((s) => s.status === "scheduled")
-                    .length
-                }
+                {schedules.filter((s) => s.status === "scheduled").length}
               </Text>
             </View>
             <View style={{ alignItems: "center" }}>
@@ -545,10 +742,7 @@ export default function ScheduleScreen() {
                   marginTop: 4,
                 }}
               >
-                {
-                  INTERVIEW_SCHEDULES.filter((s) => s.status === "completed")
-                    .length
-                }
+                {schedules.filter((s) => s.status === "completed").length}
               </Text>
             </View>
           </View>
@@ -644,10 +838,20 @@ export default function ScheduleScreen() {
           </ScrollView>
 
           {/* Schedules List */}
-          {filteredSchedules.length > 0 ? (
+          {loading ? (
+            <View
+              style={{
+                paddingVertical: 40,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : filteredSchedules.length > 0 ? (
             <FlatList
               data={filteredSchedules}
-              renderItem={ScheduleCard}
+              renderItem={({ item }) => <ScheduleCard item={item} />}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
               nestedScrollEnabled={false}
@@ -688,9 +892,10 @@ export default function ScheduleScreen() {
             </View>
           )}
 
-          <View style={{ height: 32 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </SidebarLayout>
+            <View style={{ height: 32 }} />
+          </ScrollView>
+        </>
+      )}
+    </SafeAreaView>
   );
 }

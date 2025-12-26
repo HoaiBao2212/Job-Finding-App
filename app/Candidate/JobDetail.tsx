@@ -152,6 +152,7 @@ export default function JobDetailScreen() {
           job_id: job.id,
           candidate_id: candidateProfile.id,
           status: "pending",
+          interview_id: null,
         },
       ]);
 
